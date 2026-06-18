@@ -1,0 +1,22 @@
+{
+  "2 media": [
+    "de.ph1b.audiobook",
+    "com.google.android.youtube",
+    "com.google.android.apps.youtube.music",
+    "com.google.android.apps.wearables.maestro.companion"
+  ],
+  "3 comm": [
+    "com.google.android.dialer",
+    "com.google.android.apps.messaging",
+    "com.anonymous.bulwarkmobile"
+  ],
+  "4 news": [
+    "link:kagi|https://news.kagi.com/",
+    "com.google.android.apps.magazines",
+    "uk.co.aella_services.s2slashdot",
+    "com.simon.harmonichackernews"
+  ],
+  "5 work": [
+    "com.microsoft.teams"
+  ]
+}

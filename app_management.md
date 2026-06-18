@@ -1,0 +1,138 @@
+# App Flyout Management
+
+Edit this list to control which apps appear in the flyout.
+
+### Instructions for Obsidian:
+- **Visible**: Keep the box as `[/]` (Slash). This avoids the strikethrough effect.
+- **Hidden**: Change the box to `[ ]` (Empty).
+- **Rename**: Add a comma after the name to provide a custom label.
+  - *Example*: `- [/] Activity Launcher, activity` will show as "activity".
+
+--- 
+
+- [/] (empty label) <!-- com.android.pixeldisplayservice -->
+- [/] Activity Launcher <!-- de.szalkowski.activitylauncher -->
+- [/] ADO Móvil <!-- com.mobilityado.ado -->
+- [/] Adobe Acrobat <!-- com.adobe.reader -->
+- [/] Aeroméxico <!-- com.aeromexico.aeromexico.app -->
+- [/] AlaskaHawaiian <!-- com.alaskaairlines.android -->
+- [/] AlfaOBD <!-- com.AlfaOBD.AlfaOBD -->
+- [/] Amazon Shopping <!-- com.amazon.mShop.android.shopping -->
+- [ ] Android Switch <!-- com.google.android.apps.restore -->
+- [ ] Android System Angle <!-- com.android.angle -->
+- [/] Authenticator <!-- com.azure.authenticator -->
+- [/] Bambu Handy <!-- bbl.intl.bambulab.com -->
+- [/] BasicSync <!-- com.chiller3.basicsync -->
+- [/] Bitwarden <!-- com.x8bit.bitwarden -->
+- [/] Breville Cooking <!-- com.breville.cookingapp -->
+- [/] Bridge Launcher <!-- com.tored.bridgelauncher -->
+- [/] Bulwark Mobile <!-- com.anonymous.bulwarkmobile -->, email
+- [ ] Calculator <!-- com.google.android.calculator -->
+- [/] Calendar <!-- com.google.android.calendar -->
+- [/] Camera <!-- com.google.android.GoogleCamera -->
+- [/] Car Scanner <!-- com.ovz.carscanner -->
+- [/] CAT Scale <!-- com.cslocator.app -->
+- [ ] Chrome <!-- com.android.chrome -->
+- [/] Clock <!-- com.google.android.deskclock -->
+- [/] Company Portal <!-- com.microsoft.windowsintune.companyportal -->
+- [/] ConnectBot <!-- org.connectbot -->
+- [/] Contacts <!-- com.google.android.contacts -->
+- [/] Costco <!-- com.costco.app.android -->
+- [/] Cromite <!-- org.cromite.cromite -->
+- [/] DAVx⁵ <!-- at.bitfire.davdroid -->
+- [/] Deltek Vantagepoint Time <!-- com.deltek.dps.time -->
+- [/] Design&Print 2 <!-- com.brother.ptouch.designandprint2 -->, brother
+- [/] Device Policy <!-- com.google.android.apps.work.clouddpc -->
+- [ ] Drive <!-- com.google.android.apps.docs -->
+- [/] FairScan <!-- org.fairscan.app -->, scanner
+- [ ] Files by Google <!-- com.google.android.apps.nbu.files -->
+- [/] Find Hub <!-- com.google.android.apps.adm -->
+- [/] Firefox <!-- org.mozilla.firefox -->
+- [/] Gboard <!-- com.google.android.inputmethod.latin -->
+- [/] Gemini <!-- com.google.android.apps.bard -->
+- [/] GitHub Store <!-- zed.rainxch.githubstore -->
+- [/] GocycleConnect <!-- com.gocycle.Gocycle -->
+- [/] Google <!-- com.google.android.googlequicksearchbox -->
+- [/] Google Fi <!-- com.google.android.apps.tycho -->
+- [/] Google News <!-- com.google.android.apps.magazines -->, news
+- [/] Google Play Store <!-- com.android.vending -->
+- [/] Google TV <!-- com.google.android.videos -->
+- [/] Google Wallet <!-- com.google.android.apps.walletnfcrel -->
+- [/] GPay <!-- com.google.android.apps.nbu.paisa.user -->
+- [/] Harmonic <!-- com.simon.harmonichackernews -->
+- [/] HERE WeGo <!-- com.here.app.maps -->
+- [ ] Home <!-- com.google.android.apps.chromecast.app -->
+- [/] Home Assistant <!-- io.homeassistant.companion.android -->
+- [/] Hop Fastpass <!-- org.trimet.mt.accounts -->
+- [/] IKEA <!-- com.ingka.ikea.app -->
+- [/] Immich <!-- app.alextran.immich -->
+- [/] Kagi Search <!-- com.kagi.search -->
+- [/] KDE Connect <!-- org.kde.kdeconnect_tp -->
+- [/] Keto-Mojo <!-- com.ketomojo.app -->
+- [/] Komoot <!-- de.komoot.android -->
+- [/] Live Transcribe & Sound Notifications <!-- com.google.audio.hearing.visualization.accessibility.scribe -->, transcribe
+- [/] LocalSend <!-- org.localsend.localsend_app -->
+- [/] Lutron <!-- com.lutron.mmw -->
+- [/] Lyft <!-- me.lyft.android -->
+- [/] Maps <!-- com.google.android.apps.maps -->
+- [/] Markor <!-- net.gsantner.markor -->
+- [/] Material Files <!-- me.zhanghai.android.files -->, files
+- [ ] Meet <!-- com.google.android.apps.tachyon -->
+- [/] Messages <!-- com.google.android.apps.messaging -->
+- [ ] My Pixel <!-- com.google.android.apps.tips -->
+- [/] Niagara Launcher <!-- bitpit.launcher -->
+- [/] Now Playing <!-- com.google.android.apps.pixel.nowplaying -->
+- [/] Obsidian <!-- md.obsidian -->
+- [/] Obtainium <!-- dev.imranr.obtainium.fdroid -->
+- [/] One Medical <!-- com.onemedical.android -->
+- [/] Package Names <!-- com.csdroid.pkg -->
+- [/] Paperless Mobile <!-- de.astubenbord.paperless_mobile -->
+- [/] Parking Kitty <!-- com.passportparking.mobile.parkingkitty -->
+- [/] PeakFinder <!-- org.peakfinder.area.alps -->
+- [/] Personal Safety <!-- com.google.android.apps.safetyhub -->
+- [/] Phone <!-- com.google.android.dialer -->
+- [/] Pixel Buds <!-- com.google.android.apps.wearables.maestro.companion -->
+- [/] Pixel Screenshots <!-- com.google.android.apps.pixel.agent -->
+- [ ] Pixel Studio <!-- com.google.android.apps.pixel.creativeassistant -->
+- [/] Plex <!-- com.plexapp.android -->
+- [/] ProMasters Only <!-- kipamore.pormastersonly -->
+- [/] Recorder <!-- com.google.android.apps.recorder -->
+- [/] Reddit <!-- com.reddit.frontpage -->
+- [/] RedReader <!-- org.quantumbadger.redreader -->
+- [/] Roborock <!-- com.roborock.smart -->
+- [/] RP <!-- com.earthflare.android.radioparadisewidget.gpv2 -->
+- [/] Ruuvi Station <!-- com.ruuvi.station -->
+- [/] S2 Slashdot <!-- uk.co.aella_services.s2slashdot -->
+- [/] Schwab <!-- com.schwab.mobile -->
+- [/] Settings <!-- com.android.settings -->
+- [/] Shizuku <!-- moe.shizuku.privileged.api -->
+- [/] Sound Amplifier <!-- com.google.android.accessibility.soundamplifier -->
+- [/] Sound Connect <!-- com.sony.songpal.mdr -->
+- [/] Starlink <!-- com.starlink.mobile -->
+- [/] Swift Backup <!-- org.swiftapps.swiftbackup -->
+- [/] Switch Access <!-- com.google.android.accessibility.switchaccess -->
+- [/] System Tracing <!-- com.android.traceur -->
+- [/] Tailscale <!-- com.tailscale.ipn -->
+- [/] Teams <!-- com.microsoft.teams -->
+- [/] Telegram <!-- org.telegram.messenger -->
+- [/] Thermometer <!-- com.google.android.apps.pixel.health -->
+- [/] Translate <!-- com.google.android.apps.translate -->
+- [/] TREK: SOUNDS [PRO] <!-- com.nstenterprises.treksounds.newBoardpro -->
+- [/] Uber <!-- com.ubercab -->
+- [/] UKG Pro <!-- com.ukg.oneapp -->
+- [/] UniFi <!-- com.ubnt.easyunifi -->
+- [/] Vanguard <!-- com.vanguard -->
+- [/] Venmo <!-- com.venmo -->
+- [/] VictronConnect <!-- com.victronenergy.victronconnect -->
+- [/] VIOFO <!-- com.viofo.viofo -->
+- [/] VLC <!-- org.videolan.vlc -->
+- [/] Voice <!-- de.ph1b.audiobook -->
+- [/] Voice Recorder Fork <!-- org.fossify.voicerecorder.debug -->
+- [/] VPN by Google <!-- com.google.android.apps.privacy.wildlife -->
+- [/] WADBS <!-- com.smoothie.wirelessDebuggingSwitch -->
+- [/] Webex <!-- com.cisco.wx2.android -->
+- [/] WhatsApp <!-- com.whatsapp -->
+- [/] WiFiman <!-- com.ubnt.usurvey -->
+- [/] WireGuard <!-- com.wireguard.android -->
+- [/] YouTube <!-- com.google.android.youtube -->
+- [/] YouTube Music <!-- com.google.android.apps.youtube.music -->
