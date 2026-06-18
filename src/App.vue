@@ -27,7 +27,7 @@ const expandedFolder = ref<string | null>(null)
 const remainingDays = ref<number | null>(null)
 const weather = ref<WeatherData | null>(null)
 const fixedWeather = ref<WeatherData | null>(null)
-const apkVersion = 'apk v9'
+const apkVersion = 'apk v12'
 const version = `v${__APP_VERSION__} · ${apkVersion}`
 const now = ref(new Date())
 let clockTimer: any
@@ -485,12 +485,8 @@ onUnmounted(() => {
 })
 
 const launchIntent = (packageName: string) => {
-  const intent = `intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;launchFlags=0x10000000;package=${packageName};end`
-  const a = document.createElement('a')
-  a.href = intent
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
+  const intentUrl = `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;launchFlags=0x10000000;package=${packageName};end`
+  location.href = intentUrl
 }
 
 const attemptLaunchWithRetry = (packageName: string, retries = 10) => {

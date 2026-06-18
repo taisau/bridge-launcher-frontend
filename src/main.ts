@@ -13,6 +13,14 @@ if (!window.Bridge) {
     appsUrl: './apps.json',
   } as any)
 } else {
+  // Prevent Android back gesture from escaping the home screen
+  // by maintaining history entries so the WebView BackHandler stays active
+  history.pushState(null, '', location.href)
+  history.pushState(null, '', location.href)
+  window.addEventListener('popstate', () => {
+    setTimeout(() => history.pushState(null, '', location.href))
+  })
+
   // Try to force portrait mode natively via the webview
   try {
     screen.orientation.lock('portrait').catch(e => console.warn('Orientation lock not supported/allowed:', e))
