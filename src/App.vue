@@ -27,7 +27,8 @@ const expandedFolder = ref<string | null>(null)
 const remainingDays = ref<number | null>(null)
 const weather = ref<WeatherData | null>(null)
 const fixedWeather = ref<WeatherData | null>(null)
-const version = `v${__APP_VERSION__}`
+const apkVersion = 'apk v9'
+const version = `v${__APP_VERSION__} · ${apkVersion}`
 const now = ref(new Date())
 let clockTimer: any
 let retryTimer: any
