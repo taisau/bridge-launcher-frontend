@@ -27,7 +27,7 @@ const expandedFolder = ref<string | null>(null)
 const remainingDays = ref<number | null>(null)
 const weather = ref<WeatherData | null>(null)
 const fixedWeather = ref<WeatherData | null>(null)
-const apkVersion = 'apk v12'
+const apkVersion = `apk v${window.Bridge?.getBridgeVersionCode?.() ?? '?'}`
 const version = `v${__APP_VERSION__} · ${apkVersion}`
 const now = ref(new Date())
 let clockTimer: any
@@ -76,6 +76,7 @@ const folderAppsMap = computed(() => {
         if (app) {
           return { ...app, label: customLabels.value[app.packageName] || app.label }
         }
+        console.warn(`folder "${folderName}": package not found in app list, dropping entry: ${item}`)
         return undefined
       })
       .filter((app): app is BridgeApp => !!app)
@@ -121,6 +122,7 @@ const pullStartY = ref(0)
 const pullDistance = ref(0)
 const isRefreshing = ref(false)
 const refreshThreshold = 100
+const pullActivationThreshold = 12
 
 const isWaving = ref(false)
 const stickyLetter = ref('')
@@ -416,10 +418,14 @@ const handleMainTouchMove = (e: TouchEvent) => {
   if (!pullStartY.value || isRefreshing.value) return
   const currentY = e.touches[0].clientY
   const distance = currentY - pullStartY.value
-  
-  if (distance > 0) {
-    // Add resistance
-    pullDistance.value = Math.pow(distance, 0.8)
+
+  // Only engage the pull once movement clears a small threshold. Below this,
+  // treat the gesture as a tap and do NOT preventDefault — otherwise the tiny
+  // downward finger jitter during a tap cancels the synthesized click, which
+  // made folder-row taps (children of <main>) launch only intermittently.
+  if (distance > pullActivationThreshold) {
+    // Add resistance (measure from the activation point so there's no jump)
+    pullDistance.value = Math.pow(distance - pullActivationThreshold, 0.8)
     if (e.cancelable) e.preventDefault() // Prevent overscroll bounce while pulling
   }
 }
@@ -484,19 +490,19 @@ onUnmounted(() => {
   window.onBridgeEvent = undefined
 })
 
+// Optional per-package launch overrides. Map a package to a specific
+// activity ONLY when its declared launcher is dead/wrong. Prefer leaving
+// this empty: with an empty override the native handler resolves the current
+// launcher activity dynamically (queryIntentActivities on MAIN/LAUNCHER),
+// which is more robust than hardcoding an activity that can change between
+// app updates. Amazon's hardcoded HomeActivity went stale and stopped
+// launching, so it now uses the dynamic package= path below.
+const launchComponentOverrides: Record<string, string> = {}
 const launchIntent = (packageName: string) => {
-  const intentUrl = `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;launchFlags=0x10000000;package=${packageName};end`
+  const comp = launchComponentOverrides[packageName]
+  const target = comp ? `component=${packageName}/${comp}` : `package=${packageName}`
+  const intentUrl = `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;launchFlags=0x10000000;${target};end`
   location.href = intentUrl
-}
-
-const attemptLaunchWithRetry = (packageName: string, retries = 10) => {
-  const success = window.Bridge.requestLaunchApp(packageName, false)
-  if (success) return
-  if (retries > 0) {
-    setTimeout(() => attemptLaunchWithRetry(packageName, retries - 1), 500)
-    return
-  }
-  launchIntent(packageName)
 }
 
 const launchApp = (app: BridgeApp) => {
@@ -512,7 +518,6 @@ const launchApp = (app: BridgeApp) => {
     closeFlyout()
   } else if (app.packageName) {
     launchIntent(app.packageName)
-    attemptLaunchWithRetry(app.packageName)
   }
 }
 

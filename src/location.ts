@@ -72,7 +72,7 @@ async function reverseGeocode(lat: number, lon: number): Promise<string> {
     if (!res.ok) return 'local'
     const data = await res.json()
     const a = data.address || {}
-    return (a.city || a.town || a.suburb || a.neighbourhood || a.hamlet || a.village || a.quarter || 'local').toLowerCase()
+    return (a.city || a.town || a.suburb || a.neighbourhood || a.hamlet || a.village || a.quarter || a.municipality || a.county || 'local').toLowerCase()
   } catch {
     return 'local'
   }
@@ -110,14 +110,18 @@ export async function fetchLocation(forceRefresh = false): Promise<LocationData 
   const FIVE_MINUTES = 5 * 60 * 1000
   const cached = safeParseLocation(safeGetStorage('weather_location'))
 
-  if (!forceRefresh && cached && (Date.now() - cached.timestamp < FIVE_MINUTES)) {
+  if (!forceRefresh && cached && cached.city !== 'local' && (Date.now() - cached.timestamp < FIVE_MINUTES)) {
     return cached
   }
 
   try {
     const result = await fetchHomeAssistantLocation()
     if (result) {
-      safeSetStorage('weather_location', JSON.stringify(result))
+      if (result.city !== 'local') {
+        safeSetStorage('weather_location', JSON.stringify(result))
+      } else {
+        console.warn('location: reverse geocode returned "local", not caching')
+      }
       return result
     }
   } catch (e) {

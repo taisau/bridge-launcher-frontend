@@ -5,8 +5,12 @@
   "com.android.chrome",
   "com.google.android.apps.docs",
   "com.google.android.apps.nbu.files",
+  "com.google.android.videos",
+  "com.google.android.apps.nbu.paisa.user",
   "com.google.android.apps.chromecast.app",
   "com.google.android.apps.tachyon",
   "com.google.android.apps.tips",
-  "com.google.android.apps.pixel.creativeassistant"
+  "com.google.android.apps.pixel.creativeassistant",
+  "com.google.android.youtube",
+  "com.google.android.apps.youtube.music"
 ]

@@ -35,12 +35,13 @@ Edit this list to control which apps appear in the flyout.
 - [ ] Chrome <!-- com.android.chrome -->
 - [/] Clock <!-- com.google.android.deskclock -->
 - [/] Company Portal <!-- com.microsoft.windowsintune.companyportal -->
+- [/] Concur <!-- com.concur.breeze -->, concur
 - [/] ConnectBot <!-- org.connectbot -->
 - [/] Contacts <!-- com.google.android.contacts -->
 - [/] Costco <!-- com.costco.app.android -->
 - [/] Cromite <!-- org.cromite.cromite -->
 - [/] DAVx⁵ <!-- at.bitfire.davdroid -->
-- [/] Deltek Vantagepoint Time <!-- com.deltek.dps.time -->
+- [/] Deltek Vantagepoint Time <!-- com.deltek.dps.time -->, vantagepoint
 - [/] Design&Print 2 <!-- com.brother.ptouch.designandprint2 -->, brother
 - [/] Device Policy <!-- com.google.android.apps.work.clouddpc -->
 - [ ] Drive <!-- com.google.android.apps.docs -->
@@ -56,9 +57,9 @@ Edit this list to control which apps appear in the flyout.
 - [/] Google Fi <!-- com.google.android.apps.tycho -->
 - [/] Google News <!-- com.google.android.apps.magazines -->, news
 - [/] Google Play Store <!-- com.android.vending -->
-- [/] Google TV <!-- com.google.android.videos -->
+- [ ] Google TV <!-- com.google.android.videos -->
 - [/] Google Wallet <!-- com.google.android.apps.walletnfcrel -->
-- [/] GPay <!-- com.google.android.apps.nbu.paisa.user -->
+- [ ] GPay <!-- com.google.android.apps.nbu.paisa.user -->
 - [/] Harmonic <!-- com.simon.harmonichackernews -->
 - [/] HERE WeGo <!-- com.here.app.maps -->
 - [ ] Home <!-- com.google.android.apps.chromecast.app -->
@@ -97,7 +98,7 @@ Edit this list to control which apps appear in the flyout.
 - [/] Plex <!-- com.plexapp.android -->
 - [/] ProMasters Only <!-- kipamore.pormastersonly -->
 - [/] Recorder <!-- com.google.android.apps.recorder -->
-- [/] Reddit <!-- com.reddit.frontpage -->
+- [/] Reddit <!-- com.reddit.frontpage -->, reddit morphe
 - [/] RedReader <!-- org.quantumbadger.redreader -->
 - [/] Roborock <!-- com.roborock.smart -->
 - [/] RP <!-- com.earthflare.android.radioparadisewidget.gpv2 -->
@@ -134,5 +135,7 @@ Edit this list to control which apps appear in the flyout.
 - [/] WhatsApp <!-- com.whatsapp -->
 - [/] WiFiman <!-- com.ubnt.usurvey -->
 - [/] WireGuard <!-- com.wireguard.android -->
-- [/] YouTube <!-- com.google.android.youtube -->
-- [/] YouTube Music <!-- com.google.android.apps.youtube.music -->
+- [/] YouTube <!-- app.morphe.android.youtube -->, youtube morphe
+- [/] YouTube Music <!-- app.morphe.android.apps.youtube.music -->, youtube music morphe
+- [ ] YouTube (Google) <!-- com.google.android.youtube -->
+- [ ] YouTube Music (Google) <!-- com.google.android.apps.youtube.music -->

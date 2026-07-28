@@ -1,8 +1,8 @@
 {
   "2 media": [
     "de.ph1b.audiobook",
-    "com.google.android.youtube",
-    "com.google.android.apps.youtube.music",
+    "app.morphe.android.youtube",
+    "app.morphe.android.apps.youtube.music",
     "com.google.android.apps.wearables.maestro.companion"
   ],
   "3 comm": [
@@ -13,10 +13,14 @@
   "4 news": [
     "link:kagi|https://news.kagi.com/",
     "com.google.android.apps.magazines",
+    "com.reddit.frontpage",
     "uk.co.aella_services.s2slashdot",
     "com.simon.harmonichackernews"
   ],
   "5 work": [
-    "com.microsoft.teams"
+    "com.microsoft.teams",
+    "com.concur.breeze",
+    "com.ukg.oneapp",
+    "com.deltek.dps.time"
   ]
 }
