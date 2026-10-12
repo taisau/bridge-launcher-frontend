@@ -29,13 +29,6 @@ if (!window.Bridge) {
       history.pushState({ bridgeGuard: true }, '', location.href)
     })
   })
-
-  // Try to force portrait mode natively via the webview
-  try {
-    screen.orientation.lock('portrait').catch(e => console.warn('Orientation lock not supported/allowed:', e))
-  } catch (e) {
-    console.warn('Orientation lock failed:', e)
-  }
 }
 
 createApp(App).mount('#app')

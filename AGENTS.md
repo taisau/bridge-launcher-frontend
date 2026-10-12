@@ -7,15 +7,15 @@
 A custom Android home screen for John's Pixel 9 Pro (Android 17), built on [Bridge Launcher](https://github.com/bridgelauncher): a native Android WebView that serves a local web project and exposes system functions to JS through a global `Bridge` object.
 
 - **Stack**: Vite, Vue 3 (Composition API), TypeScript, Tailwind CSS v4. Platform floor Android 8 (API 24).
-- **Repos**: frontend `github.com/taisau/bridge-launcher-frontend` (this folder's git remote). Native fork `github.com/taisau/launcher`, **branch `patched`, tag `v24`** (see section 7). Upstream: `bridgelauncher/launcher`, `bridgelauncher/api` (types), `bridgelauncher/api-mock`.
+- **Repos**: frontend `github.com/taisau/bridge-launcher-frontend` (this folder's git remote). Native fork `github.com/taisau/launcher`, **branch `patched`, tag `v25`** (see section 7). Upstream: `bridgelauncher/launcher`, `bridgelauncher/api` (types), `bridgelauncher/api-mock`.
 - **Project root** holds config JSONs and scripts; all frontend code is in `src/`.
 
 ## 2. Current state (2026-10-12)
 
 | Part | Version | Notes |
 |---|---|---|
-| Frontend | `v0.6.3` | built in the ai container, delivered by Syncthing |
-| APK | `v24` (`BridgeLauncher-v24.apk`, versionCode 24) | signer SHA-256 `37292fe9…`; installed and verified on the phone |
+| Frontend | `v0.6.4` | built in the ai container, delivered by Syncthing |
+| APK | `v25` (`BridgeLauncher-v25.apk`, versionCode 25) | signer SHA-256 `37292fe9…`; installed and verified on the phone |
 | Native source | `launcher-src/` | gitignored here, persisted on GitHub branch `patched` |
 
 Everything below describes how it works *now*. History lives in section 11.
@@ -23,7 +23,7 @@ Everything below describes how it works *now*. History lives in section 11.
 ## 3. Repo layout
 
 - `src/App.vue` (UI + all gestures), `main.ts` (history guard, API mock), `location.ts`, `weather.ts`, `calendar.ts`, `countdown.ts`, `storage.ts`, `vite.config.ts` (stable unhashed output names).
-- Root: `folders.json`, `app_management.md` (source) → generates `custom_labels.json` + `hidden_apps.json`, `apps.json` (desktop-mock snapshot only), `ha-config.json` and `calendar-config.json` (gitignored, copied by the build), `sync-build.sh`, `verify-sync-version.sh`, `process_app_management.js`, `phone-sync/` (build output, gitignored), `launcher-src/` (native checkout, gitignored), `BridgeLauncher-v24.apk`.
+- Root: `folders.json`, `app_management.md` (source) → generates `custom_labels.json` + `hidden_apps.json`, `apps.json` (desktop-mock snapshot only), `ha-config.json` and `calendar-config.json` (gitignored, copied by the build), `sync-build.sh`, `verify-sync-version.sh`, `process_app_management.js`, `phone-sync/` (build output, gitignored), `launcher-src/` (native checkout, gitignored), `BridgeLauncher-v25.apk`.
 
 ## 4. Frontend behaviour (reference)
 
@@ -93,7 +93,7 @@ Hold ~100 ms on the right edge (15 px drift cancels). Fisheye wave, letters only
 ## 7. Native APK (patched Bridge Launcher)
 
 ### Source and build
-- Persisted on **`github.com/taisau/launcher`, branch `patched`, tag `v24`** (`master` is stock v8; older tags v12-v15 are incomplete). Local checkout `launcher-src/` (gitignored here and excluded from Syncthing).
+- Persisted on **`github.com/taisau/launcher`, branch `patched`, tag `v25`** (`master` is stock v8; older tags v12-v15 are incomplete). Local checkout `launcher-src/` (gitignored here and excluded from Syncthing).
 - **Toolchain** (ai container, not persistent across rebuilds): `sudo apt-get install openjdk-21-jdk-headless`; Android SDK at `/opt/android-sdk` (platform 34, build-tools 34.0.0, cmdline-tools); `local.properties` → `sdk.dir=/opt/android-sdk`.
 - **Build**: `JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ANDROID_HOME=/opt/android-sdk ANDROID_SDK_ROOT=/opt/android-sdk ./gradlew --no-daemon assembleDebug` (~1m20s). Output `app/build/outputs/apk/debug/*.apk` → copy to `BridgeLauncher-vNN.apk` in the project root. Verify with `aapt dump badging`, `apksigner verify --print-certs`.
 - **Signing**: all builds use `~/.android/debug.keystore` (SHA-256 `37292fe9…`); a backup lives in `52.01 secrets/android-debug-keystore/`. **Restore it before building after any container rebuild**, or the APK will not install over the old one (a signature mismatch needs a manual uninstall, which clears settings).
@@ -105,6 +105,7 @@ Hold ~100 ms on the right edge (15 px drift cancels). Fisheye wave, letters only
 - `NavUtils`: shared `startBridgeActivity` (+`NEW_TASK`); `launchApp(app)` typo fix (it launched Bridge itself); `launchApp(pkg)` rewritten like the intent handler. `AppListItem` double launch removed; the drawer uses `tryLaunchApp`.
 - Defaults baked in: project dir `/storage/emulated/0/sync/5 computadors/56 software/56.39 bridge-launcher/phone-sync` (`BridgeSetting.file(defaultValue)`), status and navigation bars `Hide`, overscroll effects on, Bridge button hidden.
 - UI: National Park font app-wide (variable weight 700 normal / 800 bold, needs `@OptIn(ExperimentalTextApi)`), black drawer with no search bar or bottom bar, A→Z order (`reverseLayout` removed, status-bar spacer first), dark theme background `0xff000000`.
+- **Portrait lock (v25)**: `android:screenOrientation="portrait"` on `HomeScreenActivity` and `AppDrawerActivity` (Settings and the dev console still rotate). A web page cannot do this: `screen.orientation.lock()` is ignored outside fullscreen, so the old JS call was removed from `main.ts`.
 - `PinShortcutActivity` (`CONFIRM_PIN_SHORTCUT`, immediately cancels): makes `isRequestPinShortcutSupported` true so Firefox's "Install" web app flow stores its manifest.
 
 ### Install on the device
@@ -133,6 +134,7 @@ Android 17 blocks `pm install` from Termux. With the phone plugged into **framew
 - **Probe the real API response before writing a fix**; reasoning from the symptom produced a wrong data-shape assumption once.
 - **`am force-stop` on a pre-v24 APK leaves a blank screen**; recover by navigating the WebView to `https://bridge.launcher/` over CDP.
 - **Firefox web app (iHasMail)**: everything on `ihasmail.taisau.tv` (logo, manifest, `/api/auth/login`) is behind Authelia. A stale session shows the shell without the cat logo and "could not sign in"; sign in at `login.taisau.tv` in a normal tab, then reopen (clear the web app's data if needed). The manifest is `standalone` (status bar stays; true fullscreen would need a server-side manifest override, declined).
+- **Orientation test over adb**: set `accelerometer_rotation 0` + `user_rotation 1`, press Home, compare `screencap` PNG dimensions (portrait 1280x2856, landscape 2856x1280) against an unlocked control app (Android Settings), then restore the original settings (`accelerometer_rotation 1`, `user_rotation 0`).
 - **Android 17**: `pm install`/`uninstall` and `am start` are blocked from Termux; Termux `logcat` only sees its own logs.
 
 ## 10. Debug recipes
@@ -153,3 +155,4 @@ Android 17 blocks `pm install` from Termux. With the phone plugged into **framew
 - **2026-09**: calendar timezone fix (`utcStart` for timed events); location stuck-on-old-town fixed by on-device `termux-location` in ha-proxy; APK v22 (black bar-less drawer, built in the ai container for the first time) and v23 (`PinShortcutActivity` for Firefox web apps); `3 comm` email → iHasMail Firefox web app (`pwa:`).
 - **2026-10-09**: `6 ai` launches Termux (`v0.6.0`).
 - **2026-10-12**: fixed the intermittent `ERR_NAME_NOT_RESOLVED` screen and the endless back-swipes. Root cause: the Accompanist WebView factory ran `onCreated` (which called `loadUrl`) before attaching the client, so the first request could reach real DNS; and `main.ts` pushed two history entries on every load. APK v24 (race fix + self-heal) pushed to `taisau/launcher` branch `patched` tag `v24`; frontend `v0.6.1`-`v0.6.3` (history guard, `requestLaunchApp` first, iframe intents, minute clock, hoisted fisheye tables, `res.ok` checks, fetch timeouts, cold-start drawer ignore window, `refreshApps` retries). A cleanup removed obsolete files (old APKs, `publish.sh`, `favorites.json`, Vite template leftovers, stray debug files) and the retired Windows-workstation workflow. Verified on-device over adb: force-stop + Home lands on the launcher with all folders. The `av` HA shortcut was not tapped (the av server was off); `condo` and email work.
+- **2026-10-12 (later)**: **APK v25 locks the home screen and app drawer to portrait** (manifest `screenOrientation`), verified over adb (launcher stays 1280x2856 while an unlocked app rotates). Frontend `v0.6.4` removes the ineffective `screen.orientation.lock` call. Source pushed to `taisau/launcher` branch `patched`, tag `v25`.
