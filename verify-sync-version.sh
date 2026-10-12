@@ -8,7 +8,7 @@ SYNC_DEST="${2:-phone-sync}"
 EXPECTED_VERSION=$(node -p "require('./$PROJECT_DIR/package.json').version")
 EXPECTED_TAG="v$EXPECTED_VERSION"
 
-DIST_JS_BUNDLE=$(ls -1t "$PROJECT_DIR/$BUILD_DIR"/assets/index-*.js 2>/dev/null | head -n 1)
+DIST_JS_BUNDLE=$(ls -1t "$PROJECT_DIR/$BUILD_DIR"/assets/index*.js 2>/dev/null | head -n 1)
 if [ -z "$DIST_JS_BUNDLE" ]; then
   echo "❌ No JS bundle found in $PROJECT_DIR/$BUILD_DIR/assets"
   exit 1
@@ -19,7 +19,7 @@ if ! grep -q "$EXPECTED_TAG" "$DIST_JS_BUNDLE"; then
   exit 1
 fi
 
-SYNC_JS_BUNDLE=$(ls -1t "$SYNC_DEST"/assets/index-*.js 2>/dev/null | head -n 1)
+SYNC_JS_BUNDLE=$(ls -1t "$SYNC_DEST"/assets/index*.js 2>/dev/null | head -n 1)
 if [ -z "$SYNC_JS_BUNDLE" ]; then
   echo "❌ No JS bundle found in $SYNC_DEST/assets"
   exit 1

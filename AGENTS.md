@@ -1,129 +1,155 @@
-# Bridge Launcher Setup: LLM Access
+# Bridge Launcher: project memory
 
-## 🌐 Project Identity & Core Context
+*Machine-readable memory for AI agents. Reorganised and pruned 2026-10-12: current-state reference first, hard-won rules next, a short dated history last. Never put this in `README.md`.*
 
-### Overview
-This project directory manages the setup, configuration, and development of a custom Android launcher using [Bridge Launcher](https://github.com/bridgelauncher). Bridge Launcher acts as a middleman between HTML, JS, and CSS and the native Android system, allowing for custom launcher creation using standard web technologies.
+## 1. Identity
 
-### Source
-- **GitHub Organization**: https://github.com/bridgelauncher
-- **Core Launcher App**: https://github.com/bridgelauncher/launcher
-- **Patched Core Fork (v12)**: https://github.com/taisau/launcher (tagged `v12`)
-- **Custom Frontend**: https://github.com/taisau/bridge-launcher-frontend
-- **JS API Types**: https://github.com/bridgelauncher/api
-- **API Mock**: https://github.com/bridgelauncher/api-mock
+A custom Android home screen for John's Pixel 9 Pro (Android 17), built on [Bridge Launcher](https://github.com/bridgelauncher): a native Android WebView that serves a local web project and exposes system functions to JS through a global `Bridge` object.
 
-### Context
-- **Platform Focus**: Android 8 (API level 24) and above.
-- **Device OS**: Pixel 9 Pro runs Android 17 (verified via phone `ro.build.version.release`).
-- **Tech Stack**: Vite, Vue 3 (Composition API), TypeScript, and Tailwind CSS v4.
-- **Core Mechanism**: A native Android WebView that exposes system functions (launching apps, wallpaper interaction, notifications, etc.) to JS via a global `Bridge` object.
+- **Stack**: Vite, Vue 3 (Composition API), TypeScript, Tailwind CSS v4. Platform floor Android 8 (API 24).
+- **Repos**: frontend `github.com/taisau/bridge-launcher-frontend` (this folder's git remote). Native fork `github.com/taisau/launcher`, **branch `patched`, tag `v24`** (see section 7). Upstream: `bridgelauncher/launcher`, `bridgelauncher/api` (types), `bridgelauncher/api-mock`.
+- **Project root** holds config JSONs and scripts; all frontend code is in `src/`.
 
----
+## 2. Current state (2026-10-12)
 
-## 🛠️ Configuration & Customization
+| Part | Version | Notes |
+|---|---|---|
+| Frontend | `v0.6.3` | built in the ai container, delivered by Syncthing |
+| APK | `v24` (`BridgeLauncher-v24.apk`, versionCode 24) | signer SHA-256 `37292fe9…`; installed and verified on the phone |
+| Native source | `launcher-src/` | gitignored here, persisted on GitHub branch `patched` |
 
-### Key Components
-- **Bridge API**: Accessed via the global `Bridge` variable in JS. Provides endpoints to fetch installed apps (`Bridge.getAppsURL()`) and app icons (`Bridge.getDefaultAppIconURL(packageName)`).
-- **Mocking Strategy**: Local development uses `@bridgelauncher/api-mock`. The mock is configured in `main.ts` to use a root-level `apps.json` (exported from the phone) to ensure local development perfectly mirrors the device's installed apps.
-- **Folder System**: The launcher uses a logical folder system defined in `folders.json`. This allows for categories (e.g., "media", "news") to be managed via JSON while the UI handles the expansion and display.
-- **Top-Level Links**: Specific apps can be hardcoded as direct top-level links (e.g., "1 ha", "6 assistant") for instant access. Supports custom web links via `link:label|url` in `folders.json`.
+Everything below describes how it works *now*. History lives in section 11.
 
-### Visual Aesthetic & Style
-- **Typography**: Uses the "National Park" variable font exclusively.
-- **Color Palette**: Pure black background (`#000000`) for OLED power efficiency with `text-gray-300` and `text-gray-500` accents.
-- **Text Styling**: Strictly lowercase across the entire UI. Extra bold (`800`) weights used for primary navigation and clock.
-- **Proportions**: Font sizes and icons are set to roughly 50% of standard mobile defaults for a compact, minimal look. Folders and apps inside folders show **no icons and no vertical lines**.
-- **Alignment**: Custom horizontal and vertical padding (`pl-14`, `pt-32`) shifts the content toward the center for better thumb reach and visual balance.
+## 3. Repo layout
 
-### Custom Features
-- **Working Days Countdown**: Migrated Kotlin logic from `56.38 countdown-app` to a TypeScript utility (`src/countdown.ts`). Calculates remaining working days until July 9, 2027, accounting for weekends, specific PTO/surgery ranges, and a "5:00 PM cutoff" rule (starts counting from tomorrow after 17:00). Consolidated into the date line in parentheses.
-- **Alphabetical Flyout**: High-performance gesture-driven app list triggered by a brief hold (~100ms) on the right edge. Features hold-to-activate with drift cancellation (15px threshold), a confirmation haptic click on activation, fisheye "wave" animation, haptic feedback on letter change, and "Release to Launch" behavior for the first app of a letter. Only displays letters with installed apps. The list remains "sticky" after release until background is tapped.
-- **Recovery Triggers**:
-    - **Clock Tap**: Opens Bridge Launcher Settings.
-    - **Bridge Flyout**: Special option at the bottom of the alphabetical scroll providing "refresh", "settings", and the version number (links to GitHub).
-- **Local Weather & Location**:
-    - Current-location weather now uses **Home Assistant Companion App** as the phone location provider. Bridge Launcher does not have native Android location permission, so browser geolocation is not reliable and the old browser/Termux/IP fallback stack was removed from `src/location.ts`.
-    - `src/location.ts` reads root-level `ha-config.json`, calls Home Assistant REST API `/api/states/{entityId}`, and extracts `attributes.latitude` / `attributes.longitude` from the configured phone `device_tracker` entity.
-    - `ha-config.json` is copied by `sync-build.sh` into `phone-sync/` if present. It currently contains placeholders and must be filled with the user's Home Assistant URL, long-lived access token, and phone entity ID before deployment.
-    - Fetches the daily high temperature and current weather code from **Open-Meteo** (Fahrenheit), caches for 5 minutes, and keys current weather cache by rounded coordinates while retaining `weather_data` as the immediate-display fallback.
-    - A **fixed-location weather line** (Guanajuato, MX at 21.015639, -101.252944) displays below the current location weather. It now hardcodes the label `guanajuato` and no longer uses Nominatim.
+- `src/App.vue` (UI + all gestures), `main.ts` (history guard, API mock), `location.ts`, `weather.ts`, `calendar.ts`, `countdown.ts`, `storage.ts`, `vite.config.ts` (stable unhashed output names).
+- Root: `folders.json`, `app_management.md` (source) → generates `custom_labels.json` + `hidden_apps.json`, `apps.json` (desktop-mock snapshot only), `ha-config.json` and `calendar-config.json` (gitignored, copied by the build), `sync-build.sh`, `verify-sync-version.sh`, `process_app_management.js`, `phone-sync/` (build output, gitignored), `launcher-src/` (native checkout, gitignored), `BridgeLauncher-v24.apk`.
 
+## 4. Frontend behaviour (reference)
 
-### Location & Reverse Geocode Learnings
-- **Nominatim fallback chain**: The reverse geocode in `src/location.ts` checks `city → town → suburb → neighbourhood → hamlet → village → quarter → municipality → county` before falling back to `"local"`. Unincorporated areas (like rural Hood River County) only have a `county` field, so `county` and `municipality` are essential fallbacks.
-- **Don't cache `"local"`**: If Nominatim returns `"local"`, the location is NOT written to cache — the next refresh always retries the reverse geocode.
-- **Entity ID drift**: Home Assistant may rename `device_tracker` entities (e.g., `pixel_9_pro` → `pixel_9_pro_2`). Check the entity list when location breaks.
+### Look
+National Park variable font only, pure black `#000000`, `text-gray-300/400/500`, **everything lowercase**, extra-bold (800) for navigation and clock, roughly half-size type, no icons and no vertical lines in folders. Padding `pl-14 pt-32` pulls content toward the thumb.
 
-### Stability & Learnings
-- **Direct-Intent Strategy**: To avoid `HomeScreenContext is null` errors, app launches (`requestLaunchApp`) are triggered **immediately** on tap. UI state changes (collapsing folders/flyouts) are deferred to the `beforePause` event to ensure the WebView is stable when the native intent is processed.
+### Home list (top to bottom)
+1. **`1 ha`**: toggles a menu of `av` (`?server=av`) and `condo` (`?server=Condo`) `homeassistant://` deep links, with a count badge. `?server=` values are **case-sensitive** and must match the Companion app's server names.
+2. **Folders** from `folders.json` (empty folders hide themselves). Subitems sort alphabetically by *displayed* label (after `custom_labels.json`). The single most-launched subitem per folder is gold `#c9a961` (`topUsedPerFolder = 1`), from local counts in `localStorage` key `app_usage_counts` (device-local; wiped by a WebView data clear).
+3. **`6 ai`**: launches Termux, whose `~/.bashrc` runs `ssh ai "bash -ic nnp"` (tmux `phone` → `nn`; see the claude-code project notes at `56.50 claude-code/AGENTS`).
+4. **`7 memo`**: `org.fossify.voicerecorder.debug`.
 
----
+### `folders.json` entry syntax
+- `com.pkg` or `com.pkg|label`: an installed app (label overrides `custom_labels.json`).
+- `link:label|https://url`: opens in the **default browser** via an intent (never inside the launcher WebView).
+- `pwa:label|startUrl`: launches a Firefox web app (see Launch paths). Current use: `pwa:email|https://ihasmail.taisau.tv/mail`.
+- An entry whose package is not in the live app list is dropped with a `console.warn`.
 
-## 📂 Usage & Workflows
+### Alphabetical flyout
+Hold ~100 ms on the right edge (15 px drift cancels). Fisheye wave, letters only for installed apps, haptic on activation (20 ms) and letter change (12 ms), release-to-launch for a letter's first app, sticky list until the background is tapped. Rows buzz on `touchstart` (`triggerHaptic(25, 300)`). Long-press a row opens Android's App info. The last "letter" is `bridge`: app info, settings, and the version label (tap = reload the page).
 
-### Project Development Workflow
-1. **Source of Truth**: All source code is in `src/`. Configuration files (`apps.json`, `folders.json`, `favorites.json`, `app_management.md`) live in the project root for easy access.
-2. **App Management**: Edit `app_management.md` to show/hide apps in the flyout and change their display names. After editing, tell the agent to "process the app management list".
-   - **IMPORTANT**: `custom_labels.json` and `hidden_apps.json` are **regenerated** by `process_app_management.js` during `sync-build.sh`. Never edit these JSON files directly — always edit `app_management.md` instead. The build script overwrites them with whatever is in the markdown file.
-3. **Mock Environment**: Run `npm run dev` in `src/` to develop on desktop. The mock will load `apps.json` from the root.
-4. **Deployment (SSH-first, Syncthing fallback)**: Use `./sync-build.sh` then push via SSH. Workflow:
-    - Run `./sync-build.sh` to build and stage files in `phone-sync/`.
-    - **Quick copy-paste deploy (run on the framework host, from the project root):**
-      ```bash
-      # 1. build + stage the bundle into phone-sync/ (also bumps nothing — bump src/package.json version first if the web bundle changed)
-      ./sync-build.sh
-      # 2. push the staged bundle to the phone over SSH (password: "c pi (tailnet)" in 52.01 secrets/secrets.md)
-      scp -P 8022 -r phone-sync/* u0_a425@100.93.179.65:"/storage/emulated/0/sync/5 computadors/56 software/56.39 bridge-launcher/phone-sync/"
-      ```
-      After pushing, reload the launcher page (tap the version label in the flyout's "bridge" section) so the new JS bundle takes effect. Note: this Windows workstation cannot build (empty `src/node_modules`, no `.bin` shims) or reach the phone — always run the build/push from the Linux framework host.
-    - **Push files to phone** via `scp -P 8022` to the Tailscale IP `100.93.179.65`. Password from `52.01 secrets/secrets.md` ("c pi (tailnet)"). The on-device path is:
-      `/storage/emulated/0/sync/5 computadors/56 software/56.39 bridge-launcher/phone-sync/`
-    - Verify with `md5sum` on both ends or check `.build-version` on the phone.
-    - **Syncthing is fallback only** — if SSH is unavailable, wait for Syncthing (id `jpy4g-ixqea`) to mirror the workspace. The phone runs Syncthing v2, config at `~/.local/state/syncthing/config.xml` (GUI/API bound to `0.0.0.0:8384`).
-    - **Sync topology:** Single Syncthing folder mirrors the *entire* `/opt/syncthing/sync` workspace to `/storage/emulated/0/sync` on the phone (Termux: `~/storage/shared/sync`). The Bridge bundle is a subpath:
-      `/storage/emulated/0/sync/5 computadors/56 software/56.39 bridge-launcher/phone-sync/`
-    - **After push, user must reload the launcher page** (tap version in flyout's "bridge" section) for new JS to take effect. Pull-to-refresh only re-fetches data JSONs, not the JS bundle.
-    - **Note:** Always show/report the current version number to the user after completing a build.
-    - **Versioning rule:** Whenever any change affects the generated HTML/web bundle (including edits to `src/App.vue`, `src/main.ts`, `src/style.css`, `src/location.ts`, or other frontend source), bump `src/package.json` `version` before building, and explicitly notify the user that the version was bumped.
-    - **Release path rule:** Do not use `npm --prefix src run build` as the final deployment step. Use `./sync-build.sh` so `phone-sync/` is refreshed.
-    - **Completion checklist (required before saying done):** report all three: `src/package.json` version, `src/dist` bundle version, and `phone-sync` bundle version; they must match.
-5. **Home Assistant location setup (required for current-location weather)**:
-    - Fill root-level `ha-config.json` with:
-      - `baseUrl`: the Home Assistant base URL reachable from the phone.
-      - `token`: a Home Assistant long-lived access token.
-      - `entityId`: the phone `device_tracker` entity from the Home Assistant Companion App.
-    - Example shape:
-      `{ "baseUrl": "https://your-home-assistant-url", "token": "YOUR_LONG_LIVED_ACCESS_TOKEN", "entityId": "device_tracker.your_phone_entity" }`
-    - Keep this file private because the token can access Home Assistant.
-6. **Activation**: Open Bridge Launcher on the device, navigate to settings, and point the active project to the `phone-sync/` directory — on the phone this resolves to `/storage/emulated/0/sync/5 computadors/56 software/56.39 bridge-launcher/phone-sync/`.
+### Header
+- **Clock** (ticks once per minute; tap opens Bridge settings).
+- **Date + countdown**: `(249) sunday 2026-10-11`. `src/countdown.ts` counts working days to **2027-10-29** (John's retirement), skipping weekends and the PTO ranges mirrored from `6 travel/63 pto/pto.md` (source of truth), with a 5 PM cutoff (after 17:00 counting starts tomorrow).
+- **Weather**: current location, then a fixed **guanajuato** line (21.015639, -101.252944). Open-Meteo, Fahrenheit, 5-minute cache, stale data is hidden.
+- **Calendar** (up to 4 lines, `src/calendar.ts`): personal (john@taisau.net) gold `#c9a961`, shared (jb@taisau.net) dark red `#a13d3d`. Format `title time` or `title – 9/7`. Rules locked by the user: today only; multi-day events appear only on their first day; sorted by start, all-day first; end label = start + days − 1.
 
----
+### Gestures
+- **Pull-to-refresh**: engages after `pullActivationThreshold = 12` px (below that the touch is a tap, so `preventDefault` never eats clicks); `loadData(true)` bypasses every 5-minute cache. Mount, resume and app events use cached data.
+- **Home gesture → Bridge app drawer**: the bottom-bar swipe cannot be intercepted, but its completion fires Bridge's `newIntent` event (the activity is `singleTask` + `CATEGORY_HOME`). `handleHomeIntent` opens the drawer only if a pause was seen within `homeIntentPauseGraceMs = 700` (already-home gesture, not "return from an app"), ignores intents during the first `homeIntentStartupIgnoreMs = 3000` after page start (cold start), and with a flyout/folder open it just closes it.
+- **Back gesture**: `main.ts` keeps exactly one history guard (`history.state.bridgeGuard`) above a replaced base entry so Android's back never escapes to the system, and reloads do not grow the stack.
 
-## 📝 Historical Log & Memories
-- **2026-05-25**: Initial project directory and memory initialized. Scaffolded Vite/Vue/Tailwind project with National Park font and custom minimal UI. Set up Syncthing-based build pipeline and downloaded Bridge Launcher v0.1.0-alpha APK directly into the project folder.
-- **2026-05-25**: Implemented "Favorites Mirroring" and "Logical Folders". Migrated retirement countdown logic from Kotlin project to TypeScript utility. Applied extra-bold, halved-size, lowercase styling. Flattened `src` structure and updated `sync-build.sh` to include data JSONs in the production sync.
-- **2026-05-26**: Implemented "Alphabetical Wave Flyout" with fisheye effect and haptic feedback. Solved `HomeScreenContext is null` errors using a Direct-Intent strategy. Integrated countdown into the date line. Added recovery triggers (Settings on clock, Reload on corner). Versioned at `v0.1.1`.
-- **2026-05-27**: Implemented efficiency and speed improvements including parallel data loading (`Promise.allSettled`) and O(1) app lookups in folders. Added new features: hiding empty folders automatically, expanded haptic feedback on interactions, and a pull-to-refresh gesture on the main layout. Versioned at `v0.1.2`.
-- **2026-06-05**: Major implementation of Local Weather & Location. Discovered and integrated the Termux Headless API for instant on-device coordinates (resolving previous HA, VPN, and IP geolocation issues). Passed coordinates to BigDataCloud for reverse geocoding and Open-Meteo for weather, formatting it directly into the date line in `App.vue`. Versioned `v0.1.20`-`v0.1.23`.
-- **2026-06-06**: Reduced date/weather letter-spacing from `tracking-[0.4em]` to `tracking-wider` (0.05em). Swapped BigDataCloud reverse-geocoding for Nominatim (OpenStreetMap) with a richer locality chain: `neighbourhood → suburb → hamlet → village → quarter → city → town`. Added a fixed-location weather line for Guanajuato, MX (21.015639, -101.252944) displaying below the current-location weather. Tightened weather line spacing from `mt-1` to `mt-0.5`. Implemented hold-to-activate for the alphabetical flyout with a ~100ms hold timer, 15px drift cancellation, and haptic confirmation click on activation. Versioned `v0.1.24`-`v0.1.30`.
-- **2026-06-09**: Cold boot `HomeScreenContext is null` recovery. After a phone reboot, Bridge Launcher's native `homeScreenContext` may be null for a period while the Activity initializes. Added retry logic (10 attempts, 500ms intervals) with `showToastIfFailed: false` to suppress the native error toast, plus an `intent://` URL fallback via `window.open` after retries exhaust. The clock tap (→ `openBridgeSettings`) also recovers because it triggers a pause/resume lifecycle that re-establishes the context. Versioned `v0.1.35`-`v0.1.38`.
-- **2026-06-09**: Replaced Termux headless API location (`localhost:8000/location`) with `navigator.geolocation.getCurrentPosition()` as the primary GPS source. Browser geolocation uses the same Android location services as Google Maps, fixing inaccurate location resolution that was falling back to IP geolocation. Also flipped the Nominatim locality priority chain to `city → town → suburb → neighbourhood → hamlet → village → quarter` so city names take priority over obscure neighborhoods. Versioned `v0.1.39`.
-- **2026-06-09**: Location stack overhaul. Replaced the single-tier Termux-API approach with a three-tier fallback chain: (1) browser geolocation (3s timeout), (2) Python HTTP server wrapping `termux-location` on phone (`~/locserv.py` on ports 8000→8080), (3) IP geolocation. Fixed a port-loop bug where a connection-refused on port 8080 skipped port 8000. Removed `mode: 'cors'` from the Termux fetch to avoid WebView CORS blocking. Set up SSH access to the phone (Termux `sshd` on port 8022, keyed via `tailscale ssh` through the framework host). The Termux location server script (`locserv.py`) is deployed to the phone's home directory and must be started manually after reboot. Versioned `v0.1.40`-`v0.1.44`.
-- **2026-06-10**: Replaced fragile browser geolocation/Termux/IP current-location stack with Home Assistant Companion App based location. `src/location.ts` now reads `ha-config.json` and fetches the configured `device_tracker` state from Home Assistant. `src/weather.ts` now caches current weather by rounded coordinates, validates Open-Meteo responses, and hardcodes fixed Guanajuato label instead of reverse-geocoding through Nominatim. `sync-build.sh` copies `ha-config.json` into `phone-sync/` if present. Build verified with `npm --prefix src run build`; diagnostics clean. Remaining setup: replace placeholder values in root `ha-config.json` with the user's actual HA base URL, long-lived access token, and phone device tracker entity, then run `./sync-build.sh`.
-- **2026-06-16**: Synced PTO exclusion ranges in `src/countdown.ts` to match current plan in `6 travel/62 pto/pto.md`. V2 narrowed (Jun 20–Jul 5 → Jun 29–Jul 3), V3 removed entirely (was Sep 5–13), V4 narrowed to Thanksgiving only (Nov 21–29 → Nov 25–27), V5 narrowed (Dec 17–Jan 4 → Dec 24–Jan 1). Independence Day observed confirmed as Jul 2 (Fri) per company schedule.
-- **2026-06-17/18**: Iterated on `attemptLaunchWithRetry` to handle cold boot `homeScreenContext is null` errors. Original fix (v0.1.57) replaced strict `===` check with case-insensitive `includes()`, increased retries from 10→30. Regressed in v0.1.57-v0.1.61 via incorrect condition logic and removed try/catch. All intermediate attempts discarded in favor of native fix (see below).
-- **2026-06-18**: Android 17 upgrade broke Bridge Launcher v0.1.0-alpha completely. Root causes: (1) `homeScreenContext` permanently null on new Android API, (2) `BridgeWebViewClient` had no `shouldOverrideUrlLoading` for `intent://` schemes, (3) `am start`/`pm` blocked from Termux shell. Solution: built patched Bridge Launcher APK from source (v12, `versionCode 12`) with `shouldOverrideUrlLoading` handler that uses `packageManager.getLaunchIntentForPackage()` — same method as native Bridge — falling back to raw intent parsing. JS side: `launchIntent()` uses `intent://#Intent;...` format (note `//`) via `location.href` assignment. Built with Temurin JDK 21 + Android SDK 34 + Gradle 8.9 on framework host. First two APK builds (v6, v7) failed: v6 had only new-API `shouldOverrideUrlLoading`, v7 added deprecated-API override but used raw `MAIN/LAUNCHER` intent (broke apps like Harmonic, Voice). v8 fix: `packageManager.getLaunchIntentForPackage()` resolves correct intent for every app. Fork saved to https://github.com/taisau/launcher (tagged `v12`).
-- **2026-06-18**: Intent URL format bug. The frontend was using `intent:#Intent;...` (without `//`) but `handleIntentUrl` checks `url.startsWith("intent://")` so it never matched. Fixed to `intent://#Intent;...` in `launchIntent()`. Also switched from `a.click()` to `location.href = intentUrl` since `a.click()` doesn't reliably trigger `shouldOverrideUrlLoading` on Android 17.
-- **2026-06-18**: Back gesture escape fix. When `canGoBack` is false, the WebView's Compose `BackHandler` doesn't fire, and the back gesture (swipe from left edge) escapes to the Android system (shows system launcher). Fixed by adding `history.pushState()` entries in `main.ts` to always keep the WebView's `canGoBack` true. A `popstate` listener refills the buffer (wrapped in `setTimeout` to prevent re-entrant loops when Bridge Launcher resumes). Attempted native fixes (Compose `BackHandler`, `OnBackPressedCallback`) caused APK crashes, so the history buffer approach is used instead.
-- **2026-06-18**: APK deployment method. Android 17 blocks `pm install` and `pm uninstall` from Termux shell (`INTERACT_ACROSS_USERS_FULL` denial). `termux-open` opens the installer but fails silently on signature mismatch. Working method: copy APK to `/storage/emulated/0/Download/bridge-v.apk` and run `am start -a android.intent.action.VIEW -d file:///... -t application/vnd.android.package-archive`. Clean install requires manual uninstall via Settings first.
-- **2026-06-18**: Debug keystore on framework host at `~/.android/debug.keystore` (created 2026-06-17). All debug APK builds use this key. Must keep it consistent across builds or APK upgrades will fail.
-- **2026-06-18**: `Download` folder (singular, not `Downloads`) on Pixel 9 Pro at `/storage/emulated/0/Download/`. SSH port 8022 managed by Termux `sshd` runit service. ADB (`android-tools`) available via `pkg install`. The `ha-proxy` runit service directory was lost after `pkg install android-tools`; later recreated on 2026-06-21.
-- **2026-06-18**: v9-v11 APK builds crashed on launch. Root cause: the Compose `BackHandler` and `OnBackPressedCallback` in `HomeScreenActivity.kt` were incompatible with the activity lifecycle. v12 reverts to clean v8 code with only versionCode bumped. The back gesture fix is handled entirely in the frontend via `history.pushState`.
-- **2026-06-17**: Set up phone (Pixel 9 Pro) remote access. Termux (with Termux:API and Termux:Boot add-ons) has sshd on port 8022 with password auth. Framework host (`100.121.57.47`) now has key-based SSH access to the phone via `~/.ssh/id_rsa`. Syncthing v2.1.1 manages `phone-sync/` sync. Both sshd and syncthing are managed by `runsvdir` via `termux-services` (`/data/data/com.termux/files/usr/var/service/{sshd,syncthing}`). Auto-start paths: `~/.termux/boot/syncthing` (Termux:Boot at device boot) and `~/.bashrc` (when Termux is opened). Moved refresh action from separate flyout link to version number label.
-- **2026-06-21**: Location showed `"local"` due to two issues: (1) `ha-proxy` runit service was down (phone couldn't reach HA), (2) reverse geocode chain didn't include `county`/`municipality` fallbacks. Location resolution is now Hood River County, OR area. Fixed by recreating `ha-proxy` runit service, adding `county` + `municipality` to Nominatim chain, and preventing `"local"` from being cached. Also documented SSH-first deployment workflow. Switched deployment priority: SSH push is primary, Syncthing is fallback. Versioned `v0.1.95`-`v0.1.96`.
-- **2026-06-20**: Amazon Shopping wouldn't launch from the flyout. Debugging notes: (1) **Documented the exact phone-sync path** — the phone has a single Syncthing folder (id `jpy4g-ixqea`, label `sync`) mirroring the *whole* `/opt/syncthing/sync` workspace to `/storage/emulated/0/sync`, so the Bridge project resolves on-device to `/storage/emulated/0/sync/5 computadors/56 software/56.39 bridge-launcher/phone-sync/` (phone Syncthing v2 config at `~/.local/state/syncthing/config.xml`). (2) **Frontend Syncthing delivery was STALE** — phone-sync contents on the phone were dated Jun 18 (`index-Cf30FyVS.js`), so frontend rebuilds were never reaching the phone; this is why the flyout kept showing the old hardcoded `apk v12` label regardless of new builds. APK updates were unaffected because those are pushed manually via `scp`. Manual fallback documented: `scp -P 8022` the bundle straight to the on-device phone-sync path. (3) **Version label made dynamic**: replaced hardcoded `const apkVersion = 'apk v12'` in `src/App.vue` with `apk v${window.Bridge?.getBridgeVersionCode?.() ?? '?'}` so it always reflects the real installed APK (the Bridge API exposes `getBridgeVersionCode()`/`getBridgeVersionName()`). (4) **APK iterated v13→v14**: `handleIntentUrl` in `BridgeWebViewClient.kt` rewritten to resolve the launcher activity via `queryIntentActivities(MAIN/LAUNCHER, package)` and start it by **explicit component** (proven to launch Amazon via `am start -n .../com.amazon.mShop.home.HomeActivity`), with `getLaunchIntentForPackage` as fallback; v14 adds on-screen `DBG` diagnostic toasts because Termux `logcat` only sees Termux's own logs (Android isolates other apps' logs from non-privileged readers). Amazon launch fix still unverified pending fresh frontend delivery + the v14 toast readout.
-- **2026-07-10**: Amazon launch fix + folder-drop diagnostics. (1) **Amazon Shopping wouldn't launch from anywhere** (flyout or folder): root cause was a stale hardcoded explicit-component override in `src/App.vue` — `launchComponentOverrides = { 'com.amazon.mShop.android.shopping': 'com.amazon.mShop.home.HomeActivity' }`. Amazon retired/renamed that activity in a newer app version, so the `component=` intent resolved to a dead component and silently did nothing. **Fix: emptied the override map** so every app (Amazon included) uses the dynamic `package=` MAIN/LAUNCHER path, which the patched v14 APK resolves at runtime via `queryIntentActivities` (`BridgeWebViewClient.handleIntentUrl`). Lesson: do NOT hardcode launcher activities — they drift across app updates; the dynamic package= resolution is the robust path. The empty `launchComponentOverrides` map is intentionally left in place as a documented extension point. (2) **"youtube music morphe" pulldown-folder item didn't launch while the flyout entry did.** Verified byte-for-byte that `folders.json`, `custom_labels.json`, and `hidden_apps.json` all already contained the correct packages (`app.morphe.android.youtube`, `app.morphe.android.apps.youtube.music`) — nothing to fix in config. The flyout and folder share the *identical* `launchApp → launchIntent` code path (both `package=`), so there is no code branch where one launches and the other doesn't for the same package. Real cause: **the deployed `phone-sync` JS bundle was STALE** (it still contained the old Amazon override string, proving it predated recent source) — a recurring Syncthing-delivery problem already noted on 2026-06-20. Rebuild + fresh push resolves it. (3) **Added unresolved-folder-package `console.warn`** in `folderAppsMap` (`src/App.vue`): folder entries whose package isn't in the live app list were being silently dropped, which is exactly what masks package mismatches — they now log `folder "<name>": package not found in app list, dropping entry: <pkg>`. (4) **Diagnostic technique:** `apps.json` / `phone-sync/apps.json` are just point-in-time snapshots (the phone reads its live app list at runtime), so morphe clones legitimately won't appear there — don't treat their absence from `apps.json` as the bug. Inspected the deployed minified bundle directly with a Node script (`index-*.js`) to confirm which source version was actually on the phone. Versioned `src/package.json` `0.1.103` → `0.1.104`; build/push still pending on the framework host (this Windows workstation has an empty `src/node_modules` and no phone reachability, so it cannot build or deploy).
-- **2026-07-10**: **RESOLVED the "youtube music morphe" (and all top-level/folder) intermittent-tap bug — it was a pull-to-refresh vs. tap conflict, NOT a data or launch-code issue.** After confirming (byte-for-byte, plus a duplicate-packageName check) that `apps.json`/`folders.json`/`custom_labels.json` were all correct and that the folder and flyout call *identical* launch code, an on-screen `alert()` diagnostic in `launchApp` revealed the folder item DID eventually fire with the correct `pkg=app.morphe.android.apps.youtube.music` — but only ~1 in 10 taps. **Root cause:** folder (dropdown) rows and the top-level items (ha/assistant/memo) live inside `<main>` with no touch handlers of their own, so their touch events bubble to `<main>`'s pull-to-refresh handlers. `handleMainTouchMove` called `e.preventDefault()` on *any* downward movement (`distance > 0`); the tiny finger jitter during a normal tap was enough to cancel the browser's synthesized `click`, so `launchApp` almost never fired. The **flyout** rows were immune because their container uses `@touchmove.passive.stop` (stops propagation to `<main>` AND is passive, so it can't preventDefault) — this is why the flyout was 100% reliable while the dropdown was flaky, despite sharing the exact same launch code. **Fix (`src/App.vue`):** added `pullActivationThreshold = 12` (px); `handleMainTouchMove` now only engages the pull and calls `preventDefault()` once movement exceeds that threshold, and measures resistance from the activation point (`Math.pow(distance - pullActivationThreshold, 0.8)`) so there's no visual jump. Below the threshold the gesture is treated as a tap and the click passes through. Genuine pulls (>>12px) still trigger refresh normally. Removed the temporary diagnostic `alert`. **Lesson:** when a tap-target is a child of a scroll/pull container, an over-eager `preventDefault()` on touchmove silently eats synthesized clicks; always gate pull/scroll gestures behind a movement threshold so small tap jitter isn't consumed. Also note the intermittency (worked ~1/10) was the tell — a dead package or dropped row would be 0/10. Versioned `src/package.json` → `0.1.109` (via `0.1.106` diagnostic build). Confirmed working on-device by the user after `sync-build.sh` + push. Also note for future debugging: `apps.json` only feeds the desktop mock (`npm run dev`); the phone always reads its live app list from `Bridge.getAppsURL()`, so editing `apps.json` never changes on-device launch behavior.
-- **2026-07-17**: **RESOLVED — flyout long-press app properties fails on Android 17.** Symptom: long-pressing an app row invokes `openAppInfo(app)` in `src/App.vue` (the flyout uses `@contextmenu.prevent.stop`), but the phone shows `homeScreenContext is null` instead of Android's App info/properties screen. Confirmed root cause in native Bridge Launcher: `JSToBridgeAPI.requestOpenAppInfo()` calls `tryRunInHomescreenContext(...)`; that helper emits the exact toast when `homeScreenContext` is null. The existing native `openAppInfo(packageName)` implementation itself is correct (`Settings.ACTION_APPLICATION_DETAILS_SETTINGS` with `package:<packageName>`); only its context source is wrong.
-- **2026-07-17 (Update)**: Rebuilt v15 successfully using OpenJDK 21 headless directly inside the `ai` tailnet container since the `framework` host was missing Java 21, the Android SDK environment variables, and the `debug.keystore`. Reapplied the v14 `queryIntentActivities` patch and the v15 `webView?.context?.tryRun` patch to the native source. The APK (`BridgeLauncher-v15.apk`) was output directly to the Syncthing volume. The old `debug.keystore` was permanently lost so this build uses a newly generated key, requiring a manual uninstall of the previous version on the device. User installed the APK locally via Syncthing on the device and confirmed the long-press bug is fully resolved.
+### Launch paths (`src/App.vue`)
+- **App**: `Bridge.requestLaunchApp(pkg, false)` first (a Java call that can never navigate the WebView); fallback is an `intent://#Intent;action=MAIN;category=LAUNCHER;launchFlags=0x10000000;package=<pkg>;end` URL.
+- **Web URL / HA deep link** (`fireWebUrl`): `intent://<rest>#Intent;scheme=<scheme>;action=VIEW;category=BROWSABLE;launchFlags=0x10000000;end`.
+- **Firefox web app** (`fireWebApp`): `…;action=mozilla.components.feature.pwa.PWA_LAUNCHER;component=org.mozilla.firefox/mozilla.components.feature.pwa.WebAppLauncherActivity;…`. The start URL must match the manifest's resolved `start_url` exactly (iHasMail: `https://ihasmail.taisau.tv/mail`) or Firefox opens a normal tab.
+- All intent URLs go through a hidden iframe (`fireIntent`), never `location.href` on the launcher document.
+- **Bridge's own activities** (settings, drawer): JS API only, no intent fallback.
+- UI collapse is deferred to `beforePause` so the intent is handled while the WebView is stable.
+
+### Location
+`src/location.ts` reads `ha-config.json` (`baseUrl` = the phone-local ha-proxy `http://localhost:8081`, `token`, `entityId` = the phone's `device_tracker`), reads `attributes.latitude/longitude`, then reverse-geocodes with Nominatim (`city → town → suburb → neighbourhood → hamlet → village → quarter → municipality → county`, else `"local"`, which is never cached). The entity id can drift (`pixel_9_pro` → `pixel_9_pro_2`); check the entity list when location breaks.
+
+### Resilience
+`loadData` uses `Promise.allSettled` and checks `res.ok` before `.json()`. `refreshApps()` re-reads just the app list at 2 s and 6 s after start. All external fetches have an 8 s `AbortSignal.timeout`. Weather, location and calendar are cached in `localStorage` with an `isStale` fallback.
+
+## 5. Data and config files
+
+- **`app_management.md`** is the source for hiding apps and renaming them. `custom_labels.json` and `hidden_apps.json` are **regenerated on every build**; never edit them. After editing the md, run the build ("process the app management list").
+- **`folders.json`**: category → entries (syntax above).
+- **`ha-config.json`**: private (HA token); gitignored; copied by the build.
+- **`calendar-config.json`**: `{proxyUrl, user, sharedAccountName}`, **no password**; gitignored; copied by the build. JMAP account ids are resolved from `/jmap/session` by account *name* (short ids like `d`/`f` can drift).
+- **`apps.json`**: desktop mock only (`npm run dev`). The phone always reads `Bridge.getAppsURL()`, so editing it never changes on-device behaviour.
+
+## 6. Build and deploy
+
+**Build host = the ai container** (the only place that builds the frontend or APK). The Windows workstation and the framework host must not build this project (dual builds raced through Syncthing and produced mismatched bundles).
+
+1. Edit `src/`, then run **`bash sync-build.sh`** (the scripts lack the exec bit, so `./` fails). It processes `app_management.md`, **bumps the version itself** (single-digit rule with carry: `0.2.9` → `0.3.0`, never `0.2.10`; do not hand-bump), builds, copies the bundle plus JSONs into `phone-sync/`, and runs `verify-sync-version.sh` (benign non-zero exit when run without exec permission).
+2. Syncthing mirrors the whole workspace to `/storage/emulated/0/sync` on the phone (folder id `jpy4g-ixqea`, phone Syncthing v2). The bundle lands at `/storage/emulated/0/sync/5 computadors/56 software/56.39 bridge-launcher/phone-sync/`. Wait for "Up to Date" on both ends.
+3. The user reloads by tapping the version label in the flyout's `bridge` section. Pull-to-refresh does **not** reload JS. The version label confirms the new bundle loaded.
+4. **Always report all three versions** (`src/package.json`, `src/dist`, `phone-sync/.build-version`; they must match) and confirm **bundle coherence**: every `assets/...` referenced by `phone-sync/index.html` exists, exactly one `index.js`, no hashed leftovers, no nested `phone-sync/phone-sync/`.
+5. `npm --prefix src run build` is for verification only, never the deploy step (it does not refresh `phone-sync/`).
+
+**Fallback delivery** (Syncthing broken): `scp` to the phone's Termux sshd (`-P 8022`, tailnet `100.93.179.65`, password in `52.01 secrets`), copying `phone-sync/*` (not the directory itself).
+
+## 7. Native APK (patched Bridge Launcher)
+
+### Source and build
+- Persisted on **`github.com/taisau/launcher`, branch `patched`, tag `v24`** (`master` is stock v8; older tags v12-v15 are incomplete). Local checkout `launcher-src/` (gitignored here and excluded from Syncthing).
+- **Toolchain** (ai container, not persistent across rebuilds): `sudo apt-get install openjdk-21-jdk-headless`; Android SDK at `/opt/android-sdk` (platform 34, build-tools 34.0.0, cmdline-tools); `local.properties` → `sdk.dir=/opt/android-sdk`.
+- **Build**: `JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ANDROID_HOME=/opt/android-sdk ANDROID_SDK_ROOT=/opt/android-sdk ./gradlew --no-daemon assembleDebug` (~1m20s). Output `app/build/outputs/apk/debug/*.apk` → copy to `BridgeLauncher-vNN.apk` in the project root. Verify with `aapt dump badging`, `apksigner verify --print-certs`.
+- **Signing**: all builds use `~/.android/debug.keystore` (SHA-256 `37292fe9…`); a backup lives in `52.01 secrets/android-debug-keystore/`. **Restore it before building after any container rebuild**, or the APK will not install over the old one (a signature mismatch needs a manual uninstall, which clears settings).
+
+### Patches carried in the `patched` branch
+- `BridgeWebViewClient.handleIntentUrl`: explicit `component=` first (Firefox web apps, Bridge's own activities), then `queryIntentActivities(MAIN/LAUNCHER, package)` → start by explicit component, then `getLaunchIntentForPackage`, then raw intent; all with `FLAG_ACTIVITY_NEW_TASK`; no toasts.
+- **Intercept-race fix (v24)**: `WebViewSetup.kt` posts `loadUrl(PROJECT_URL)` so it runs after the client is attached; `BridgeWebViewClient.onReceivedError` self-heals a main-frame error on `bridge.launcher` (reload after 300 ms, max 5 attempts; `onPageFinished` then `clearHistory()`).
+- `JSToBridgeAPI.tryRunInHomescreenContext` uses `homeScreenContext ?: webView?.context` (`homeScreenContext` is permanently null on Android 17).
+- `NavUtils`: shared `startBridgeActivity` (+`NEW_TASK`); `launchApp(app)` typo fix (it launched Bridge itself); `launchApp(pkg)` rewritten like the intent handler. `AppListItem` double launch removed; the drawer uses `tryLaunchApp`.
+- Defaults baked in: project dir `/storage/emulated/0/sync/5 computadors/56 software/56.39 bridge-launcher/phone-sync` (`BridgeSetting.file(defaultValue)`), status and navigation bars `Hide`, overscroll effects on, Bridge button hidden.
+- UI: National Park font app-wide (variable weight 700 normal / 800 bold, needs `@OptIn(ExperimentalTextApi)`), black drawer with no search bar or bottom bar, A→Z order (`reverseLayout` removed, status-bar spacer first), dark theme background `0xff000000`.
+- `PinShortcutActivity` (`CONFIRM_PIN_SHORTCUT`, immediately cancels): makes `isRequestPinShortcutSupported` true so Firefox's "Install" web app flow stores its manifest.
+
+### Install on the device
+Android 17 blocks `pm install` from Termux. With the phone plugged into **framework** (`adb` at `/usr/bin/adb`): `scp` the APK there, `adb install -r /tmp/BridgeLauncher-vNN.apk`. Without adb: copy to `/storage/emulated/0/Download/` and open it from Files. A fresh install still needs the "Manage all files" permission and Bridge chosen as the home app.
+
+## 8. Phone-side services (Termux)
+
+- **`ha-proxy`** (runit service, `~/ha-proxy.py`, port 8081): proxies `/api/` to the a-ha Home Assistant (`100.75.37.107`, tailnet only); **intercepts `/api/states/device_tracker…` and answers from on-device `termux-location`** so location works with no path to a-ha; falls back to a-ha. Also `GET /jmap-session` and `POST /jmap` → Stalwart with Basic auth injected from the phone-only `~/calendar-proxy.json` (chmod 600, never synced), adding `ACAO: *`.
+- **Why the calendar proxy exists**: Stalwart's CORS preflight never returns `access-control-allow-origin`, so the WebView blocks every direct authenticated call (`curl` ignores CORS, so curl tests prove nothing). JMAP was chosen over CalDAV REPORT for the same reason and because it returns JSON.
+- **sshd** on 8022, **Syncthing**, both under `termux-services` runit; Termux:Boot starts them.
+
+## 9. Rules and gotchas (hard-won)
+
+> [!warning] Blank black launcher: check the bundle first
+> Check bundle coherence (`index.html` refs vs `assets/`) **before** suspecting the last code edit. The cause was content-hashed filenames plus non-atomic Syncthing delivery; `vite.config.ts` now emits fixed names (`assets/index.js`) so a half-synced bundle runs the previous version instead of 404ing. If a reload shows a stale version label, add a cache-busting query.
+
+> [!warning] `ERR_NAME_NOT_RESOLVED` / "web page not available" means the request skipped Bridge's interceptor
+> "Web page not available" = the WebView refused a navigation (a handler returned false). "`<host>` could not be resolved" = real DNS was attempted, so the request was never intercepted. v24 fixes the startup race and self-heals; never navigate the launcher document to an `intent://` URL.
+
+- **Never use an empty-authority `intent://#Intent;component=…` URL from the frontend**; it escapes to an external browser. Use the JS API for Bridge's own activities. (`fireWebApp` has a real authority and is fine.)
+- **Never hardcode launcher activities** (`launchComponentOverrides` is intentionally empty): activity names drift across app updates; `package=` resolves dynamically.
+- **Tap targets inside the pull container**: never `preventDefault()` on touchmove below the activation threshold, or jitter eats the synthesized click (the old "1 in 10 taps" bug).
+- **Haptics**: vibrate on `touchstart` (a vibration is cancelled when the page hides at intent hand-off); pulses under ~10 ms are imperceptible on the Pixel's actuator; each `vibrate()` cancels the previous one.
+- **Keep the app-list retries unconditional.** After a cold start Bridge can return a *partial* app list (folders silently lose entries). Do not gate the re-read on "list is empty".
+- **Timed calendar events**: Stalwart returns `start` for timed *and* all-day events without a `Z`; for timed events the true instant is `utcStart` (`Etc/UTC`). Timed events read time, filter and sort from `utcStart`; all-day events use floating-local `start` (their `utcStart` is the previous day in UTC-7). The JMAP window is wide (−1/+2 days) with exact filtering in JS. Stalwart rejects `utcStart` as a sort key (sort client-side). No server-side recurrence expansion (none exist in the data).
+- **Probe the real API response before writing a fix**; reasoning from the symptom produced a wrong data-shape assumption once.
+- **`am force-stop` on a pre-v24 APK leaves a blank screen**; recover by navigating the WebView to `https://bridge.launcher/` over CDP.
+- **Firefox web app (iHasMail)**: everything on `ihasmail.taisau.tv` (logo, manifest, `/api/auth/login`) is behind Authelia. A stale session shows the shell without the cat logo and "could not sign in"; sign in at `login.taisau.tv` in a normal tab, then reopen (clear the web app's data if needed). The manifest is `standalone` (status bar stays; true fullscreen would need a server-side manifest override, declined).
+- **Android 17**: `pm install`/`uninstall` and `am start` are blocked from Termux; Termux `logcat` only sees its own logs.
+
+## 10. Debug recipes
+
+- **Live WebView state over CDP** (run on framework, which has `node`): `adb forward tcp:9333 localabstract:webview_devtools_remote_<pid>` (pid from `adb shell pidof com.tored.bridgelauncher`), then a small Node script using the global `WebSocket` against `http://127.0.0.1:9333/json` and `Runtime.evaluate` (for example fetch `Bridge.getAppsURL()` and read `history.length`). Remove the forward and the script afterwards.
+- **Screenshot**: `adb exec-out screencap -p > file.png` on framework, then `scp` it over.
+- **Bridge logs**: `adb logcat -d -s BridgeWebViewClient` (a "main-frame error … reloading project" line means the v24 recovery fired).
+- **Cold-start test**: `adb shell am force-stop com.tored.bridgelauncher`, `adb shell input keyevent KEYCODE_HOME`, wait ~10 s, screenshot. Expect the launcher with all folder counts correct, no drawer, no error page.
+- **Which version is on the phone**: `adb shell cat "/storage/emulated/0/sync/5 computadors/56 software/56.39 bridge-launcher/phone-sync/.build-version"` (nested quoting needed through `tailscale ssh`).
+- **Checking a deployed bundle**: grep `phone-sync/assets/index.js` for output strings, not function names (the minifier renames locals).
+
+## 11. History (condensed)
+
+- **2026-05-25/27**: project created; Vite/Vue/Tailwind scaffold, National Park font, folders, countdown ported from the (since deleted) `56.38 countdown-app` widget, alphabetical wave flyout, pull-to-refresh, parallel loading. v0.1.x.
+- **2026-06**: location moved from browser/Termux/IP geolocation to the Home Assistant Companion `device_tracker` via the phone-local ha-proxy; Nominatim fallback chain; fixed Guanajuato weather line. Android 17 broke the stock APK (`homeScreenContext` null, no `intent://` handling), so a patched fork was built (v12-v14) and the history-guard back fix added.
+- **2026-07/08**: launch bugs resolved (stale hardcoded Amazon activity; pull-to-refresh swallowing taps; haptics on touchstart; blank screen from hashed filenames); APK v15-v21 (long-press app info, defaults baked in, own app-drawer fixes, National Park font, A→Z); in-page swipe-up replaced by the home-gesture `newIntent` approach; folder subitem gold highlight + alphabetical sort; all URL launches moved off `window.open` to intent-VIEW (links open in the default browser).
+- **2026-08-29**: Stalwart calendar on the home screen via the phone-local JMAP proxy (CORS root cause); pull-to-refresh bypasses caches.
+- **2026-09**: calendar timezone fix (`utcStart` for timed events); location stuck-on-old-town fixed by on-device `termux-location` in ha-proxy; APK v22 (black bar-less drawer, built in the ai container for the first time) and v23 (`PinShortcutActivity` for Firefox web apps); `3 comm` email → iHasMail Firefox web app (`pwa:`).
+- **2026-10-09**: `6 ai` launches Termux (`v0.6.0`).
+- **2026-10-12**: fixed the intermittent `ERR_NAME_NOT_RESOLVED` screen and the endless back-swipes. Root cause: the Accompanist WebView factory ran `onCreated` (which called `loadUrl`) before attaching the client, so the first request could reach real DNS; and `main.ts` pushed two history entries on every load. APK v24 (race fix + self-heal) pushed to `taisau/launcher` branch `patched` tag `v24`; frontend `v0.6.1`-`v0.6.3` (history guard, `requestLaunchApp` first, iframe intents, minute clock, hoisted fisheye tables, `res.ok` checks, fetch timeouts, cold-start drawer ignore window, `refreshApps` retries). A cleanup removed obsolete files (old APKs, `publish.sh`, `favorites.json`, Vite template leftovers, stray debug files) and the retired Windows-workstation workflow. Verified on-device over adb: force-stop + Home lands on the launcher with all folders. The `av` HA shortcut was not tapped (the av server was off); `condo` and email work.

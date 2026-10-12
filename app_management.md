@@ -26,7 +26,6 @@ Edit this list to control which apps appear in the flyout.
 - [/] Bitwarden <!-- com.x8bit.bitwarden -->
 - [/] Breville Cooking <!-- com.breville.cookingapp -->
 - [/] Bridge Launcher <!-- com.tored.bridgelauncher -->
-- [/] Bulwark Mobile <!-- com.anonymous.bulwarkmobile -->, email
 - [ ] Calculator <!-- com.google.android.calculator -->
 - [/] Calendar <!-- com.google.android.calendar -->
 - [/] Camera <!-- com.google.android.GoogleCamera -->
@@ -45,7 +44,7 @@ Edit this list to control which apps appear in the flyout.
 - [/] Design&Print 2 <!-- com.brother.ptouch.designandprint2 -->, brother
 - [/] Device Policy <!-- com.google.android.apps.work.clouddpc -->
 - [ ] Drive <!-- com.google.android.apps.docs -->
-- [/] FairScan <!-- org.fairscan.app -->, scanner
+- [/] FairScan <!-- org.fairscan.app -->
 - [ ] Files by Google <!-- com.google.android.apps.nbu.files -->
 - [/] Find Hub <!-- com.google.android.apps.adm -->
 - [/] Firefox <!-- org.mozilla.firefox -->
@@ -67,7 +66,7 @@ Edit this list to control which apps appear in the flyout.
 - [/] Hop Fastpass <!-- org.trimet.mt.accounts -->
 - [/] IKEA <!-- com.ingka.ikea.app -->
 - [/] Immich <!-- app.alextran.immich -->
-- [/] Kagi Search <!-- com.kagi.search -->
+- [ ] Kagi Search <!-- com.kagi.search -->
 - [/] KDE Connect <!-- org.kde.kdeconnect_tp -->
 - [/] Keto-Mojo <!-- com.ketomojo.app -->
 - [/] Komoot <!-- de.komoot.android -->
@@ -75,11 +74,12 @@ Edit this list to control which apps appear in the flyout.
 - [/] LocalSend <!-- org.localsend.localsend_app -->
 - [/] Lutron <!-- com.lutron.mmw -->
 - [/] Lyft <!-- me.lyft.android -->
+- [/] MakeACopy <!-- de.schliweb.makeacopy.light -->, scanner
 - [/] Maps <!-- com.google.android.apps.maps -->
 - [/] Markor <!-- net.gsantner.markor -->
 - [/] Material Files <!-- me.zhanghai.android.files -->, files
 - [ ] Meet <!-- com.google.android.apps.tachyon -->
-- [/] Messages <!-- com.google.android.apps.messaging -->
+- [/] Messages <!-- com.google.android.apps.messaging -->, google messages
 - [ ] My Pixel <!-- com.google.android.apps.tips -->
 - [/] Niagara Launcher <!-- bitpit.launcher -->
 - [/] Now Playing <!-- com.google.android.apps.pixel.nowplaying -->

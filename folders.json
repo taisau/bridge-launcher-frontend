@@ -7,11 +7,11 @@
   ],
   "3 comm": [
     "com.google.android.dialer",
-    "com.google.android.apps.messaging",
-    "com.anonymous.bulwarkmobile"
+    "dev.octoshrimpy.quik|messages",
+    "com.whatsapp",
+    "pwa:email|https://ihasmail.taisau.tv/mail"
   ],
   "4 news": [
-    "link:kagi|https://news.kagi.com/",
     "com.google.android.apps.magazines",
     "com.reddit.frontpage",
     "uk.co.aella_services.s2slashdot",
@@ -21,6 +21,7 @@
     "com.microsoft.teams",
     "com.concur.breeze",
     "com.ukg.oneapp",
-    "com.deltek.dps.time"
+    "com.deltek.dps.time",
+    "de.schliweb.makeacopy.light"
   ]
 }

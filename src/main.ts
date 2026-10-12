@@ -15,10 +15,19 @@ if (!window.Bridge) {
 } else {
   // Prevent Android back gesture from escaping the home screen
   // by maintaining history entries so the WebView BackHandler stays active
-  history.pushState(null, '', location.href)
-  history.pushState(null, '', location.href)
-  window.addEventListener('popstate', () => {
-    setTimeout(() => history.pushState(null, '', location.href))
+  // Keep exactly ONE guard entry above the base entry. Pushing unconditionally
+  // on every load grew the stack by two on each reload, which is what made
+  // recovering from an error page take many back-swipes.
+  if (!history.state?.bridgeGuard) {
+    history.replaceState({ bridgeBase: true }, '', location.href)
+    history.pushState({ bridgeGuard: true }, '', location.href)
+  }
+  window.addEventListener('popstate', (e) => {
+    if (e.state?.bridgeGuard) return
+    setTimeout(() => {
+      history.replaceState({ bridgeBase: true }, '', location.href)
+      history.pushState({ bridgeGuard: true }, '', location.href)
+    })
   })
 
   // Try to force portrait mode natively via the webview

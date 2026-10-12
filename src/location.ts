@@ -67,7 +67,7 @@ async function reverseGeocode(lat: number, lon: number): Promise<string> {
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
-      { headers: { 'User-Agent': 'BridgeLauncher/1.0' } }
+      { headers: { 'User-Agent': 'BridgeLauncher/1.0' }, signal: AbortSignal.timeout(8000) }
     )
     if (!res.ok) return 'local'
     const data = await res.json()
@@ -87,7 +87,8 @@ async function fetchHomeAssistantLocation(): Promise<LocationData | null> {
       Authorization: `Bearer ${config.token}`,
       Accept: 'application/json'
     },
-    credentials: 'omit'
+    credentials: 'omit',
+    signal: AbortSignal.timeout(8000)
   })
   if (!res.ok) throw new Error(`Home Assistant location failed: ${res.status}`)
 

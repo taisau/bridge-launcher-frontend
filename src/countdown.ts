@@ -3,19 +3,23 @@ export interface DateRange {
   end: Date;
 }
 
-const targetDate = new Date(2027, 6, 9); // July 9, 2027 (Month is 0-indexed)
+const targetDate = new Date(2027, 9, 29); // Oct 29, 2027 (Month is 0-indexed)
 
 const excludedRanges: DateRange[] = [
   { start: new Date(2026, 4, 16), end: new Date(2026, 4, 25) }, // V1: May
   { start: new Date(2026, 5, 3), end: new Date(2026, 5, 5) },  // Surgery
   { start: new Date(2026, 5, 29), end: new Date(2026, 6, 3) }, // V2: June/July
   { start: new Date(2026, 10, 25), end: new Date(2026, 10, 27) }, // V4: November
-  { start: new Date(2026, 11, 24), end: new Date(2027, 0, 1) }, // V5: Christmas
-  { start: new Date(2027, 1, 27), end: new Date(2027, 2, 7) }, // V6: Feb/March
-  { start: new Date(2027, 3, 24), end: new Date(2027, 4, 2) }  // V7: April
+  { start: new Date(2027, 0, 8), end: new Date(2027, 0, 15) }, // V5: Puerto Vallarta
+  { start: new Date(2027, 2, 6), end: new Date(2027, 2, 14) }, // V6: March (TBD)
+  { start: new Date(2027, 4, 15), end: new Date(2027, 4, 23) }  // V7: May (Central Oregon)
 ];
 
 const standaloneClosures: Date[] = [
+  new Date(2026, 11, 24), // Christmas Eve
+  new Date(2026, 11, 25), // Christmas
+  new Date(2027, 0, 1),   // New Year's Day
+  new Date(2027, 8, 6),   // Labor Day
   new Date(2027, 4, 31), // Memorial Day
   new Date(2027, 6, 2)   // Independence Day observed
 ];

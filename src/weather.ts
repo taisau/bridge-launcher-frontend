@@ -56,7 +56,7 @@ function weatherCacheKey(loc: LocationData): string {
 
 async function fetchOpenMeteo(lat: number, lon: number): Promise<{ tempHigh: number; condition: string }> {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max&current=weather_code&timezone=auto&forecast_days=1&temperature_unit=fahrenheit`
-  const res = await fetch(url)
+  const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
   if (!res.ok) throw new Error(`Weather fetch failed: ${res.status}`)
   const data = await res.json()
   const tempHigh = Number(data.daily?.temperature_2m_max?.[0])

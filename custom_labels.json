@@ -1,12 +1,12 @@
 {
-  "com.anonymous.bulwarkmobile": "email",
   "com.concur.breeze": "concur",
   "com.deltek.dps.time": "vantagepoint",
   "com.brother.ptouch.designandprint2": "brother",
-  "org.fairscan.app": "scanner",
   "com.google.android.apps.magazines": "news",
   "com.google.audio.hearing.visualization.accessibility.scribe": "transcribe",
+  "de.schliweb.makeacopy.light": "scanner",
   "me.zhanghai.android.files": "files",
+  "com.google.android.apps.messaging": "google messages",
   "com.reddit.frontpage": "reddit morphe",
   "app.morphe.android.youtube": "youtube morphe",
   "app.morphe.android.apps.youtube.music": "youtube music morphe"
