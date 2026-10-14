@@ -15,7 +15,7 @@ Edit this list to control which apps appear in the flyout.
 - [/] ADO Móvil <!-- com.mobilityado.ado -->
 - [/] Adobe Acrobat <!-- com.adobe.reader -->
 - [/] Aeroméxico <!-- com.aeromexico.aeromexico.app -->
-- [/] AlaskaHawaiian <!-- com.alaskaairlines.android -->
+- [/] AlaskaHawaiian <!-- com.alaskaairlines.android -->, alaska
 - [/] AlfaOBD <!-- com.AlfaOBD.AlfaOBD -->
 - [/] Amazon Shopping <!-- com.amazon.mShop.android.shopping -->
 - [ ] Android Switch <!-- com.google.android.apps.restore -->
