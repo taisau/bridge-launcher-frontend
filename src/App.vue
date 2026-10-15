@@ -289,14 +289,17 @@ const getLetterStyle = (char: string, index: number) => {
 const handleWaveStart = (e: TouchEvent) => {
   const touch = e.touches[0]
   initialTouch = { x: touch.clientX, y: touch.clientY }
+  const touch0 = touch
 
   if (waveHoldTimer) clearTimeout(waveHoldTimer)
 
   waveHoldTimer = setTimeout(() => {
     isWaving.value = true
     stickyLetter.value = ''
+    // Process the first touch synchronously and silently: a letter-change
+    // buzz a frame later would cancel this 20 ms activation pulse.
+    processWaveTouch(e.touches[0] ?? touch0, true)
     triggerHaptic(20)
-    handleWaveMove(e)
     waveHoldTimer = null
   }, 100)
 }
@@ -380,7 +383,7 @@ const updateRemainingDays = (date: Date) => {
   }
 }
 
-const processWaveTouch = (touch: Touch) => {
+const processWaveTouch = (touch: Touch, silent = false) => {
   const y = touch.clientY
   const x = touch.clientX
   touchY.value = y
@@ -395,7 +398,7 @@ const processWaveTouch = (touch: Touch) => {
 
   if (newLetter !== activeLetter.value) {
     activeLetter.value = newLetter
-    triggerHaptic(12)
+    if (!silent) triggerHaptic(18)
   }
 }
 
