@@ -1,5 +1,5 @@
 phone-sync/
-BridgeLauncher-v0.1.0-alpha.apk
+*.apk
 ha-config.json
 calendar-config.json
 launcher-src/

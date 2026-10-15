@@ -1,4 +1,8 @@
 {
+  "1 ha": [
+    "link:av|homeassistant://navigate/lovelace?server=av",
+    "link:condo|homeassistant://navigate/lovelace?server=Condo"
+  ],
   "2 media": [
     "de.ph1b.audiobook",
     "app.morphe.android.youtube",

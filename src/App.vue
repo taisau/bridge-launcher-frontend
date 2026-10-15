@@ -1,20 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
+import AlphabetFlyout from './AlphabetFlyout.vue'
+import { triggerHaptic } from './haptics'
+import type { BridgeApp } from './types'
 import { calculateRemainingWorkingDays } from './countdown'
 import { fetchLocation } from './location'
 import { fetchWeather, fetchFixedWeather, type WeatherData } from './weather'
-import { fetchCalendarEvents, type CalendarData, type CalendarDisplayEvent } from './calendar'
+import { fetchCalendarEvents, loadCachedCalendar, type CalendarData, type CalendarDisplayEvent } from './calendar'
 
 declare const __APP_VERSION__: string;
-
-interface BridgeApp {
-  packageName: string
-  label: string
-  url?: string
-  isPwa?: boolean
-  isAction?: boolean
-  action?: () => void
-}
 
 interface Folders {
   [key: string]: string[] // Folder name -> Array of package names or link strings
@@ -26,7 +20,6 @@ const hiddenApps = ref<string[]>([])
 const customLabels = ref<Record<string, string>>({})
 const loading = ref(true)
 const expandedFolder = ref<string | null>(null)
-const showHaMenu = ref(false)
 const remainingDays = ref<number | null>(null)
 const weather = ref<WeatherData | null>(null)
 const fixedWeather = ref<WeatherData | null>(null)
@@ -34,13 +27,13 @@ const calendarEvents = ref<CalendarData | null>(null)
 const apkVersion = `apk v${window.Bridge?.getBridgeVersionCode?.() ?? '?'}`
 const version = `v${__APP_VERSION__} · ${apkVersion}`
 const now = ref(new Date())
-let clockTimer: any
+let clockTimer: ReturnType<typeof setTimeout> | undefined
 let retryTimers: ReturnType<typeof setTimeout>[] = []
 let loadDataDebounceTimer: ReturnType<typeof setTimeout> | null = null
 let loadDataInFlight: Promise<void> | null = null
-let waveAnimationFrame: number | null = null
-let pendingWaveTouch: Touch | null = null
 let remainingDaysKey = ''
+let lastDateKey = ''
+const flyout = ref<InstanceType<typeof AlphabetFlyout> | null>(null)
 
 const appPackageMap = computed(() => {
   const map: Record<string, BridgeApp> = {}
@@ -146,15 +139,6 @@ const isTopUsed = (folderName: string, packageName: string) => {
   return topUsedByFolder.value[folderName]?.has(packageName) ?? false
 }
 
-const haUsageKey = (label: string) => `ha:${label}`
-const topHaShortcut = computed(() => {
-  const ranked = haShortcuts
-    .filter(s => (usageCounts.value[haUsageKey(s.label)] || 0) > 0)
-    .sort((a, b) => (usageCounts.value[haUsageKey(b.label)] || 0) - (usageCounts.value[haUsageKey(a.label)] || 0))
-    .slice(0, 1)
-  return ranked[0]?.label ?? null
-})
-
 const appsByLetter = computed(() => {
   const map: Record<string, BridgeApp[]> = {}
 
@@ -184,194 +168,18 @@ const appsByLetter = computed(() => {
   return map
 })
 
-const filteredAlphabet = computed(() => {
-  const letters = alphabet.filter(char => appsByLetter.value[char] && appsByLetter.value[char].length > 0)
-  return [...letters, 'bridge']
-})
-
-const activeIndex = computed(() => filteredAlphabet.value.indexOf(activeLetter.value))
-
 const pullStartY = ref(0)
 const pullDistance = ref(0)
 const isRefreshing = ref(false)
 const refreshThreshold = 100
 const pullActivationThreshold = 12
 
-const isWaving = ref(false)
-const stickyLetter = ref('')
-const touchY = ref(0)
-const touchX = ref(0)
-let waveHoldTimer: ReturnType<typeof setTimeout> | null = null
-let initialTouch = { x: 0, y: 0 }
-const activeLetter = ref('')
-const alphabet = '#abcdefghijklmnopqrstuvwxyz'.split('')
-const windowHeight = ref(window.innerHeight)
-
-// Fisheye effect calculation
-const scaleByDistance: Record<number, number> = {
-  0: 2.5,
-  1: 2.0,
-  2: 1.7,
-  3: 1.5,
-  4: 1.35,
-  5: 1.2,
-  6: 1.1,
-  7: 1.05
-}
-const opacityByDistance: Record<number, number> = {
-  0: 1.0,
-  1: 0.9,
-  2: 0.75,
-  3: 0.6,
-  4: 0.45,
-  5: 0.35,
-  6: 0.28,
-  7: 0.22
-}
-const translateXByDistance: Record<number, number> = {
-  0: -60,
-  1: -52,
-  2: -42,
-  3: -33,
-  4: -24,
-  5: -15,
-  6: -8,
-  7: -3
-}
-
-const getLetterStyle = (char: string, index: number) => {
-  if (!isWaving.value) {
-    return {
-      opacity: 0,
-      transform: 'translate3d(0, 0, 0) scale(1)'
-    }
-  }
-
-  if (char === 'bridge') {
-    const containerHeight = windowHeight.value * 0.9
-    const containerTop = windowHeight.value * 0.05
-    const letterHeight = containerHeight / filteredAlphabet.value.length
-    const letterCenterY = containerTop + (index * letterHeight) + (letterHeight / 2)
-    const distance = Math.abs(touchY.value - letterCenterY)
-    const range = 150
-
-    if (distance < range) {
-      const power = Math.pow(Math.cos((distance / range) * (Math.PI / 2)), 2)
-      const scale = 1 + (power * 1.5)
-      const translateX = -power * 60
-      return {
-        transform: `translate3d(${translateX}px, 0, 0) scale(${scale})`,
-        opacity: 1,
-        color: 'white'
-      }
-    }
-    return {
-      opacity: 0.3,
-      transform: 'translate3d(0, 0, 0) scale(1)'
-    }
-  }
-
-  const distanceFromActive = Math.abs(index - activeIndex.value)
-
-  const scale = scaleByDistance[distanceFromActive] ?? 1.0
-  const opacity = opacityByDistance[distanceFromActive] ?? 0.3
-  const translateX = translateXByDistance[distanceFromActive] ?? 0
-  const color = distanceFromActive === 0 ? '#ffffff' : undefined
-
-  return {
-    transform: `translate3d(${translateX}px, 0, 0) scale(${scale})`,
-    opacity,
-    ...(color && { color })
-  }
-}
-
-// Gesture Handling
-const handleWaveStart = (e: TouchEvent) => {
-  const touch = e.touches[0]
-  initialTouch = { x: touch.clientX, y: touch.clientY }
-  const touch0 = touch
-
-  if (waveHoldTimer) clearTimeout(waveHoldTimer)
-
-  waveHoldTimer = setTimeout(() => {
-    isWaving.value = true
-    stickyLetter.value = ''
-    // Process the first touch synchronously and silently: a letter-change
-    // buzz a frame later would cancel this 20 ms activation pulse.
-    processWaveTouch(e.touches[0] ?? touch0, true)
-    triggerHaptic(20)
-    waveHoldTimer = null
-  }, 100)
-}
-
-const handleWaveMove = (e: TouchEvent) => {
-  const touch = e.touches[0]
-
-  if (!isWaving.value) {
-    if (waveHoldTimer) {
-      const drift = Math.sqrt(
-        Math.pow(touch.clientX - initialTouch.x, 2) +
-        Math.pow(touch.clientY - initialTouch.y, 2)
-      )
-      if (drift > 15) {
-        clearTimeout(waveHoldTimer)
-        waveHoldTimer = null
-      }
-    }
-    return
-  }
-
-  pendingWaveTouch = touch
-  if (waveAnimationFrame !== null) return
-  waveAnimationFrame = requestAnimationFrame(() => {
-    waveAnimationFrame = null
-    if (!pendingWaveTouch) return
-    processWaveTouch(pendingWaveTouch)
-    pendingWaveTouch = null
-  })
-}
-
-const handleWaveEnd = (_e: TouchEvent) => {
-  if (waveHoldTimer) {
-    clearTimeout(waveHoldTimer)
-    waveHoldTimer = null
-    return
-  }
-
-  if (waveAnimationFrame !== null) {
-    cancelAnimationFrame(waveAnimationFrame)
-    waveAnimationFrame = null
-  }
-  pendingWaveTouch = null
-
-  const screenWidth = window.innerWidth
-  const distanceFromRight = screenWidth - touchX.value
-
-  if (isWaving.value && activeLetter.value) {
-    if (distanceFromRight > 100) {
-      const apps = appsByLetter.value[activeLetter.value]
-      if (apps && apps.length > 0) {
-        launchApp(apps[0])
-      }
-    } else {
-      stickyLetter.value = activeLetter.value
-    }
-  }
-
-  isWaving.value = false
-}
-
 const closeFlyout = () => {
-  stickyLetter.value = ''
-  activeLetter.value = ''
+  flyout.value?.close()
   expandedFolder.value = null
 }
 
 // Special top-level apps
-const haShortcuts = [
-  { label: 'av', url: 'homeassistant://navigate/lovelace?server=av' },
-  { label: 'condo', url: 'homeassistant://navigate/lovelace?server=Condo' },
-]
 const memoPackage = "org.fossify.voicerecorder.debug"
 
 const updateRemainingDays = (date: Date) => {
@@ -380,25 +188,6 @@ const updateRemainingDays = (date: Date) => {
   if (remainingDays.value === null || remainingDaysKey !== key) {
     remainingDaysKey = key
     remainingDays.value = calculateRemainingWorkingDays()
-  }
-}
-
-const processWaveTouch = (touch: Touch, silent = false) => {
-  const y = touch.clientY
-  const x = touch.clientX
-  touchY.value = y
-  touchX.value = x
-
-  const containerTop = windowHeight.value * 0.05
-  const containerHeight = windowHeight.value * 0.9
-  const relativeY = y - containerTop
-  const letters = filteredAlphabet.value
-  let index = Math.floor((relativeY / containerHeight) * letters.length)
-  const newLetter = letters[Math.max(0, Math.min(index, letters.length - 1))]
-
-  if (newLetter !== activeLetter.value) {
-    activeLetter.value = newLetter
-    if (!silent) triggerHaptic(18)
   }
 }
 
@@ -491,30 +280,6 @@ const refreshApps = async () => {
   }
 }
 
-const handleResize = () => {
-  windowHeight.value = window.innerHeight
-}
-
-// Haptics. Two things make navigator.vibrate() unreliable here:
-//  - pulses under ~10ms are often imperceptible on the phone's LRA actuator;
-//  - the spec cancels a running vibration as soon as the document becomes
-//    hidden, which is exactly what launchIntent() causes a moment later. So
-//    the buzz is fired as early as possible (touchstart, not click).
-// minGap swallows a repeat landing on top of a previous one, since a second
-// vibrate() call also cancels the first.
-let lastHapticAt = 0
-const triggerHaptic = (ms: number, minGap = 0) => {
-  if (!('vibrate' in navigator)) return
-  const t = Date.now()
-  if (minGap && t - lastHapticAt < minGap) return
-  lastHapticAt = t
-  try {
-    navigator.vibrate(ms)
-  } catch {
-    /* vibration unsupported or blocked */
-  }
-}
-
 // --- Pull to Refresh Logic ---
 const handleMainTouchStart = (e: TouchEvent) => {
   const mainEl = e.currentTarget as HTMLElement
@@ -567,15 +332,16 @@ onMounted(() => {
     if (cachedWeather) weather.value = JSON.parse(cachedWeather)
     const cachedFixedWeather = localStorage.getItem('weather_fixed')
     if (cachedFixedWeather) fixedWeather.value = JSON.parse(cachedFixedWeather)
-    const cachedCalendar = localStorage.getItem('calendar_events')
-    if (cachedCalendar) calendarEvents.value = JSON.parse(cachedCalendar)
   } catch (e) {
     console.warn('weather cache hydration failed', e)
   }
+  // Only today's cached calendar is shown; yesterday's would read as today's.
+  calendarEvents.value = loadCachedCalendar()
 
   loadUsageCounts()
 
   updateRemainingDays(now.value)
+  lastDateKey = now.value.toDateString()
   void loadData()
   // Right after a cold start Bridge may still be scanning installed apps and
   // return a partial list, so re-read just the app list shortly after.
@@ -584,10 +350,14 @@ onMounted(() => {
   const tickClock = () => {
     now.value = new Date()
     updateRemainingDays(now.value)
+    // The calendar and weather are per-day; reload when midnight passes while
+    // the launcher stays in front.
+    const dateKey = now.value.toDateString()
+    if (lastDateKey && dateKey !== lastDateKey) scheduleLoadData()
+    lastDateKey = dateKey
     clockTimer = setTimeout(tickClock, 60000 - (Date.now() % 60000) + 50)
   }
   clockTimer = setTimeout(tickClock, 60000 - (Date.now() % 60000) + 50)
-  window.addEventListener('resize', handleResize)
   window.onBridgeEvent = (event: any) => {
     if (event.name === 'beforePause') {
       lastPauseAt = Date.now()
@@ -610,9 +380,6 @@ onUnmounted(() => {
   if (clockTimer) clearTimeout(clockTimer)
   retryTimers.forEach(clearTimeout)
   if (loadDataDebounceTimer) clearTimeout(loadDataDebounceTimer)
-  if (waveHoldTimer) clearTimeout(waveHoldTimer)
-  if (waveAnimationFrame !== null) cancelAnimationFrame(waveAnimationFrame)
-  window.removeEventListener('resize', handleResize)
   window.onBridgeEvent = undefined
 })
 
@@ -768,9 +535,8 @@ const pageStartedAt = Date.now()
 
 const handleHomeIntent = () => {
   // A flyout/folder open means the gesture reads as "get me out of here".
-  if (isWaving.value || stickyLetter.value || expandedFolder.value) {
+  if (flyout.value?.isOpen || expandedFolder.value) {
     closeFlyout()
-    expandedFolder.value = null
     return
   }
   if (Date.now() - pageStartedAt < homeIntentStartupIgnoreMs) return
@@ -815,13 +581,6 @@ const eventLine = (ev: CalendarDisplayEvent) => {
 </script>
 
 <template>
-  <!-- Background Backdrop Blur when waving or sticky list shown -->
-  <div 
-    v-if="isWaving || stickyLetter" 
-    class="fixed inset-0 bg-black/70 backdrop-blur-md z-40 transition-all duration-300"
-    @click="closeFlyout"
-  ></div>
-
   <!-- Pull to Refresh Indicator -->
   <div 
     class="fixed top-0 left-0 w-full flex justify-center items-center h-20 pointer-events-none z-30 transition-transform duration-200"
@@ -835,7 +594,7 @@ const eventLine = (ev: CalendarDisplayEvent) => {
   </div>
 
   <main 
-    class="h-screen w-screen flex flex-col pl-14 pr-6 pt-32 pb-12 select-none overflow-y-auto bg-black text-white"
+    class="h-screen w-screen flex flex-col pl-14 pr-6 pt-32 pb-12 select-none overflow-y-auto bg-black text-white no-scrollbar"
     @click="closeFlyout"
     @touchstart.passive="handleMainTouchStart"
     @touchmove="handleMainTouchMove"
@@ -852,11 +611,9 @@ const eventLine = (ev: CalendarDisplayEvent) => {
       </p>
       <p v-if="shouldShowWeatherLine(weather)" class="text-[10px] lowercase tracking-wider text-gray-500 mt-0.5 pl-0.5">
         {{ weather!.city }} {{ weather!.tempHigh }}&deg; {{ weather!.condition }}
-        <span v-if="weather!.isStale" class="opacity-50"> (last refresh {{ formatStaleTime(weather!.lastRefresh) }})</span>
       </p>
       <p v-if="shouldShowWeatherLine(fixedWeather)" class="text-[10px] lowercase tracking-wider text-gray-500 mt-0.5 pl-0.5">
         {{ fixedWeather!.city }} {{ fixedWeather!.tempHigh }}&deg; {{ fixedWeather!.condition }}
-        <span v-if="fixedWeather!.isStale" class="opacity-50"> (last refresh {{ formatStaleTime(fixedWeather!.lastRefresh) }})</span>
       </p>
       <!-- Calendar: personal = gold (same as most-used), shared = dark red -->
       <template v-if="calendarEvents && calendarEvents.events.length > 0">
@@ -878,44 +635,7 @@ const eventLine = (ev: CalendarDisplayEvent) => {
     </div>
     
     <div v-else class="flex flex-col gap-5 relative z-10 transition-transform duration-200" :style="{ transform: `translateY(${isRefreshing ? refreshThreshold/2 : pullDistance / 2}px)` }">
-      <!-- 1: Home Assistant (Server shortcuts) -->
-      <div 
-        class="flex flex-col gap-2"
-        @click.stop
-      >
-        <div 
-          class="flex items-center gap-3 cursor-pointer active:opacity-50 transition-all"
-          @click.stop="showHaMenu = !showHaMenu"
-        >
-          <span class="text-[15px] font-extrabold tracking-tight text-gray-300 hover:text-white transition-colors lowercase">
-            1 ha
-          </span>
-          <span class="text-[9px] text-gray-600 font-mono tracking-widest lowercase">
-            {{ haShortcuts.length }}
-          </span>
-        </div>
-
-        <div 
-          v-if="showHaMenu" 
-          class="flex flex-col gap-3 pl-3 ml-0.5 py-1"
-        >
-          <div 
-            v-for="ha in haShortcuts" 
-            :key="ha.label"
-            class="flex items-center cursor-pointer active:opacity-50 transition-all"
-            @click.stop="showHaMenu = false; recordUsage(haUsageKey(ha.label)); fireWebUrl(ha.url)"
-          >
-            <span
-              class="text-[15px] font-extrabold tracking-tight lowercase"
-              :class="topHaShortcut === ha.label ? 'text-[#c9a961]' : 'text-gray-400'"
-            >
-              {{ ha.label }}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 2-5: The Folders -->
+      <!-- Folders (incl. 1 ha) from folders.json -->
       <template v-for="(_, folderName) in folders" :key="folderName">
         <div 
           v-if="(folderAppsMap[folderName as string] || []).length > 0"
@@ -975,56 +695,12 @@ const eventLine = (ev: CalendarDisplayEvent) => {
       </div>
     </div>
 
-    <!-- Alphabet Wave Strip (Right Edge Trigger) -->
-    <div 
-      class="fixed right-0 w-32 z-50 flex flex-col justify-between py-2 items-center"
-      :style="{ top: '5vh', height: '90vh' }"
-      @touchstart.passive.stop="handleWaveStart"
-      @touchmove.passive.stop="handleWaveMove"
-      @touchend.passive.stop="handleWaveEnd"
-    >
-      <div 
-        v-for="(char, index) in filteredAlphabet" 
-        :key="char"
-        class="text-[8px] font-extrabold text-gray-600 transition-all duration-100 ease-out will-change-transform"
-        :style="getLetterStyle(char, index)"
-      >
-        {{ char }}
-      </div>
-    </div>
-
-    <!-- Active/Sticky Flyout List -->
-    <div 
-      v-if="(isWaving || stickyLetter) && (activeLetter || stickyLetter) && appsByLetter[activeLetter || stickyLetter]"
-      class="fixed z-50 flex flex-col no-scrollbar"
-      :style="{ 
-        top: `${Math.max(30, Math.min(touchY - 60, windowHeight - Math.min(windowHeight * 0.8, appsByLetter[activeLetter || stickyLetter].length * 52 + 100) - 40))}px`, 
-        left: '3.5rem',
-        maxHeight: '80vh'
-      }"
-    >
-      <!-- Letter Header -->
-      <div class="mb-2 pb-1 shrink-0">
-        <span class="text-[17px] font-extrabold text-gray-500 tracking-widest lowercase">
-          {{ activeLetter || stickyLetter }}
-        </span>
-      </div>
-
-      <div class="flex flex-col gap-4 overflow-y-auto no-scrollbar pb-20">
-        <div 
-          v-for="app in appsByLetter[activeLetter || stickyLetter]" 
-          :key="app.packageName"
-          class="flex items-center py-2 cursor-pointer active:opacity-50 transition-all shrink-0"
-          @touchstart.passive="triggerHaptic(25, 300)"
-          @click.stop="launchApp(app)"
-          @contextmenu.prevent.stop="openAppInfo(app)"
-        >
-          <span class="text-[15px] font-extrabold text-white tracking-tight leading-tight lowercase">
-            {{ app.label }}
-          </span>
-        </div>
-      </div>
-    </div>
+    <AlphabetFlyout
+      ref="flyout"
+      :apps-by-letter="appsByLetter"
+      @launch="launchApp"
+      @app-info="openAppInfo"
+    />
   </main>
 </template>
 
@@ -1032,22 +708,5 @@ const eventLine = (ev: CalendarDisplayEvent) => {
 main {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-main::-webkit-scrollbar {
-  display: none;
-}
-main {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.will-change-transform {
-  will-change: transform, opacity;
 }
 </style>

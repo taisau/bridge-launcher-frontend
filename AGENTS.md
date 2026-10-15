@@ -28,29 +28,29 @@ Sibling files (not loaded natively, read on demand): [[AGENTS.frontend]] (UI beh
 - **Firefox web app (iHasMail)**: everything on `ihasmail.taisau.tv` (logo, manifest, `/api/auth/login`) is behind Authelia. A stale session shows the shell without the cat logo and "could not sign in"; sign in at `login.taisau.tv` in a normal tab, then reopen (clear the web app's data if needed). The manifest is `standalone` (status bar stays; true fullscreen would need a server-side manifest override, declined).
 - **Android 17**: `pm install`/`uninstall` and `am start` are blocked from Termux; Termux `logcat` only sees its own logs.
 
-## Current state (2026-10-14)
+## Current state (2026-10-15)
 
 | Part | Version | Notes |
 |---|---|---|
-| Frontend | `v0.6.6` | `src/package.json` and `phone-sync/.build-version` agree; built in the ai container, delivered by Syncthing |
+| Frontend | `v0.6.8` | `src/package.json` and `phone-sync/.build-version` agree; built in the ai container, delivered by Syncthing |
 | APK | `v25` (`BridgeLauncher-v25.apk`, versionCode 25) | signer SHA-256 `37292fe9…` (matches `~/.android/debug.keystore`); installed and verified on the phone 2026-10-12 |
 | Native source | `launcher-src/` | gitignored here, persisted on GitHub branch `patched`, tag `v25` |
 
-Git here is behind the builds: the last commit is `0.6.4` (2026-10-12); `0.6.5`/`0.6.6` and edits to `folders.json`, `app_management.md` and the generated JSONs are uncommitted (checked 2026-10-14).
+Git is current with the builds (commits `0.6.7`, `0.6.8`; not pushed). `*.apk` is gitignored and untracked (the APK stays on disk; the native source is on GitHub `patched`/`v25`); `.git` still carries ~33 MB of old APK history.
 
 ## Layout and data files
 
-- `src/App.vue` (UI + all gestures), `main.ts` (history guard, API mock), `location.ts`, `weather.ts`, `calendar.ts`, `countdown.ts`, `storage.ts`, `vite.config.ts` (stable unhashed output names).
-- Root: `folders.json`, `app_management.md` (source) → generates `custom_labels.json` + `hidden_apps.json`, `apps.json` (desktop-mock snapshot only), `ha-config.json` and `calendar-config.json` (gitignored, copied by the build), `sync-build.sh`, `verify-sync-version.sh`, `process_app_management.js`, `phone-sync/` (build output, gitignored), `launcher-src/` (native checkout, gitignored), `BridgeLauncher-v25.apk`.
+- `src/App.vue` (home list, pull-to-refresh, launch paths), `AlphabetFlyout.vue` (right-edge wave strip + flyout; owns all wave state so wave frames re-render only that subtree), `haptics.ts` (`triggerHaptic`), `types.ts`, `main.ts` (history guard; the desktop API mock is a dynamic import, so it is a separate `assets/dist.js` chunk the phone never loads), `location.ts`, `weather.ts`, `calendar.ts`, `countdown.ts`, `storage.ts`, `vite.config.ts` (stable unhashed output names).
+- Root: `folders.json`, `app_management.md` (source) → generates `custom_labels.json` + `hidden_apps.json`, `apps.json` (desktop-mock snapshot only; no longer copied into `phone-sync/`), `ha-config.json` and `calendar-config.json` (gitignored, copied by the build), `sync-build.sh`, `verify-sync-version.sh`, `process_app_management.js`, `phone-sync/` (build output, gitignored), `launcher-src/` (native checkout, gitignored), `BridgeLauncher-v25.apk`.
 - **`app_management.md`** is the source for hiding apps and renaming them. `custom_labels.json` and `hidden_apps.json` are **regenerated on every build**; never edit them. After editing the md, run the build ("process the app management list").
-- **`ha-config.json`**: private (HA token); gitignored. **`calendar-config.json`**: `{proxyUrl, user, sharedAccountName}`, **no password**; gitignored. JMAP account ids are resolved from `/jmap/session` by account *name* (short ids like `d`/`f` can drift).
+- **`ha-config.json`**: `{baseUrl, entityId}`, **no token** any more; gitignored. The HA long-lived token lives only on the phone in `~/ha-proxy.json` (chmod 600), injected by `ha-proxy` when a request has no `Authorization` header (added 2026-10-15; backup `~/ha-proxy.py.bak-pre-token`). **`calendar-config.json`**: `{proxyUrl, user, sharedAccountName}`, **no password**; gitignored. JMAP account ids are resolved from `/jmap/session` by account *name* (short ids like `d`/`f` can drift).
 - **`apps.json`**: desktop mock only (`npm run dev`). The phone always reads `Bridge.getAppsURL()`, so editing it never changes on-device behaviour.
 
 ## Build and deploy
 
 **Build host = the ai container** (the only place that builds the frontend or APK). The Windows workstation and the framework host must not build this project (dual builds raced through Syncthing and produced mismatched bundles).
 
-1. Edit `src/`, then run **`bash sync-build.sh`** (the scripts lack the exec bit, so `./` fails). It processes `app_management.md`, **bumps the version itself** (single-digit rule with carry: `0.2.9` → `0.3.0`, never `0.2.10`; do not hand-bump), builds, copies the bundle plus JSONs into `phone-sync/`, and runs `verify-sync-version.sh` (benign non-zero exit when run without exec permission).
+1. Edit `src/`, then run **`bash sync-build.sh`** . It processes `app_management.md`, **bumps the version itself** (single-digit rule with carry: `0.2.9` → `0.3.0`, never `0.2.10`; do not hand-bump), builds, stages the bundle plus JSONs in a temp dir and `rsync -a --delete`s it over `phone-sync/` (never `rm -rf`, so Syncthing cannot see an empty folder and ship deletes), and runs `verify-sync-version.sh`. Both scripts are executable now.
 2. Syncthing mirrors the whole workspace to `/storage/emulated/0/sync` on the phone (folder id `jpy4g-ixqea`, phone Syncthing v2). The bundle lands at `/storage/emulated/0/sync/5 computadors/56 software/56.39 bridge-launcher/phone-sync/`. Wait for "Up to Date" on both ends.
 3. The user reloads by tapping the version label in the flyout's `bridge` section. Pull-to-refresh does **not** reload JS. The version label confirms the new bundle loaded.
 4. **Always report all three versions** (`src/package.json`, `src/dist`, `phone-sync/.build-version`; they must match) and confirm **bundle coherence**: every `assets/...` referenced by `phone-sync/index.html` exists, exactly one `index.js`, no hashed leftovers, no nested `phone-sync/phone-sync/`.
@@ -74,8 +74,11 @@ Git here is behind the builds: the last commit is `0.6.4` (2026-10-12); `0.6.5`/
 
 ## Open items
 
-- Commit the uncommitted frontend work (`0.6.5`/`0.6.6`, `folders.json`, `app_management.md`) and push; this file does not record what those versions changed (unverified, 2026-10-14).
+- Push the local commits when John says so.
+- Not verified on the device yet (2026-10-15): `v0.6.7` haptics fix, `v0.6.8` flyout component, `touchcancel` handling, `1 ha` as a folder. a-ha was unreachable from the phone during the proxy change, so HA token injection was tested against a local echo server only, not real HA.
+- `npm run dev` is effectively broken (`src/` has no `apps.json`/`folders.json` to serve); not worth fixing unless desktop previews are wanted.
+- Held back on purpose: TypeScript 7, `@types/node` 26.
 
 ## History
 
-Dated history moved to [[AGENTS.history]]. Latest: 2026-10-12 APK v25 (portrait lock) and frontend `v0.6.4`; 2026-10-13 the ai image gained JDK 21.
+Dated history moved to [[AGENTS.history]]. Latest: 2026-10-15 full review (frontend `v0.6.7`/`v0.6.8`: haptics fix, flyout split into a component, `touchcancel`, per-day calendar cache, midnight reload, atomic rsync deploy, mock out of the bundle, geocode cache, HA token moved phone-side, `1 ha` folder); 2026-10-12 APK v25 (portrait lock); 2026-10-13 the ai image gained JDK 21.

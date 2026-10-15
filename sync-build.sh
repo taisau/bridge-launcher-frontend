@@ -41,17 +41,21 @@ fi
 cd ..
 
 echo "📂 Refreshing the sync folder..."
-rm -rf "$SYNC_DEST"
+# Stage the full bundle, then rsync it over phone-sync/. Never rm -rf the
+# destination: Syncthing could scan the empty folder and ship deletes of
+# index.js etc. to the phone (blank launcher). rsync overwrites each file
+# atomically in place and only deletes what is truly gone.
+STAGE=$(mktemp -d)
+trap 'rm -rf "$STAGE"' EXIT
+cp -r "$PROJECT_DIR/$BUILD_DIR/." "$STAGE/"
+cp folders.json "$STAGE/"
+cp hidden_apps.json "$STAGE/" || true
+cp custom_labels.json "$STAGE/" || true
+cp ha-config.json "$STAGE/" || true
+cp calendar-config.json "$STAGE/" || true
+echo "$NEW_VERSION" > "$STAGE/.build-version"
 mkdir -p "$SYNC_DEST"
-
-cp -r "$PROJECT_DIR/$BUILD_DIR/." "$SYNC_DEST/"
-cp apps.json "$SYNC_DEST/"
-cp folders.json "$SYNC_DEST/"
-cp hidden_apps.json "$SYNC_DEST/" || true
-cp custom_labels.json "$SYNC_DEST/" || true
-cp ha-config.json "$SYNC_DEST/" || true
-cp calendar-config.json "$SYNC_DEST/" || true
-echo "$NEW_VERSION" > "$SYNC_DEST/.build-version"
+rsync -a --delete "$STAGE/" "$SYNC_DEST/"
 
 ./verify-sync-version.sh "$PROJECT_DIR" "$SYNC_DEST"
 

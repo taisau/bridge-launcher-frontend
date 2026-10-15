@@ -7,7 +7,7 @@ export interface LocationData {
 
 interface HomeAssistantConfig {
   baseUrl: string
-  token: string
+  token?: string // only for talking to HA directly; via ha-proxy the proxy injects it
   entityId: string
 }
 
@@ -46,13 +46,13 @@ async function loadHomeAssistantConfig(): Promise<HomeAssistantConfig | null> {
       return null
     }
     const config = await res.json()
-    if (typeof config.baseUrl !== 'string' || typeof config.token !== 'string' || typeof config.entityId !== 'string') {
+    if (typeof config.baseUrl !== 'string' || typeof config.entityId !== 'string') {
       _haConfig = null
       return null
     }
     _haConfig = {
       baseUrl: config.baseUrl.replace(/\/$/, ''),
-      token: config.token,
+      token: typeof config.token === 'string' ? config.token : undefined,
       entityId: config.entityId
     }
     return _haConfig
@@ -63,11 +63,33 @@ async function loadHomeAssistantConfig(): Promise<HomeAssistantConfig | null> {
   }
 }
 
-async function reverseGeocode(lat: number, lon: number): Promise<string> {
+// The city only changes when you move roughly a kilometre, so remember it per
+// 2-decimal lat/lon cell and skip Nominatim while the cell is unchanged.
+const CITY_CACHE_KEY = 'geocode_city'
+
+function readCityCache(cell: string): string | null {
   try {
+    const parsed = JSON.parse(safeGetStorage(CITY_CACHE_KEY) || 'null')
+    if (parsed && parsed.cell === cell && typeof parsed.city === 'string') return parsed.city
+  } catch { /* corrupt cache: fall through to a fresh lookup */ }
+  return null
+}
+
+async function reverseGeocode(lat: number, lon: number): Promise<string> {
+  const cell = `${lat.toFixed(2)},${lon.toFixed(2)}`
+  const cachedCity = readCityCache(cell)
+  if (cachedCity) return cachedCity
+  const city = await lookupCity(lat, lon)
+  if (city !== 'local') safeSetStorage(CITY_CACHE_KEY, JSON.stringify({ cell, city }))
+  return city
+}
+
+async function lookupCity(lat: number, lon: number): Promise<string> {
+  try {
+    // No User-Agent header: it is a forbidden header, so the WebView drops it.
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
-      { headers: { 'User-Agent': 'BridgeLauncher/1.0' }, signal: AbortSignal.timeout(8000) }
+      { signal: AbortSignal.timeout(8000) }
     )
     if (!res.ok) return 'local'
     const data = await res.json()
@@ -84,7 +106,7 @@ async function fetchHomeAssistantLocation(): Promise<LocationData | null> {
 
   const res = await fetch(`${config.baseUrl}/api/states/${encodeURIComponent(config.entityId)}`, {
     headers: {
-      Authorization: `Bearer ${config.token}`,
+      ...(config.token && { Authorization: `Bearer ${config.token}` }),
       Accept: 'application/json'
     },
     credentials: 'omit',

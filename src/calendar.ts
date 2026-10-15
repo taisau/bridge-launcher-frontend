@@ -10,6 +10,7 @@ export interface CalendarDisplayEvent {
 export interface CalendarData {
   events: CalendarDisplayEvent[]
   lastRefresh: number
+  dateKey?: string // local date the events were fetched for; a cache from another day is never shown
   isStale?: boolean
 }
 
@@ -74,6 +75,17 @@ function queryWindow(): { after: string; before: string } {
   const after = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
   const before = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2)
   return { after: after.toISOString(), before: before.toISOString() }
+}
+
+// Cached events belong to the day they were fetched for. After midnight they
+// would show yesterday's calendar as today's, so such a cache counts as absent.
+export function isCalendarCurrent(data: CalendarData | null): data is CalendarData {
+  return !!data && data.dateKey === localDateKey(new Date())
+}
+
+export function loadCachedCalendar(): CalendarData | null {
+  const cached = safeParseCalendar(safeGetStorage(CALENDAR_CACHE_KEY))
+  return isCalendarCurrent(cached) ? cached : null
 }
 
 function safeParseCalendar(raw: string | null): CalendarData | null {
@@ -220,7 +232,7 @@ function toDisplay(ev: JmapEvent & { isShared: boolean }): CalendarDisplayEvent 
 }
 
 export async function fetchCalendarEvents(forceRefresh = false): Promise<CalendarData | null> {
-  const cached = safeParseCalendar(safeGetStorage(CALENDAR_CACHE_KEY))
+  const cached = loadCachedCalendar()
 
   if (!forceRefresh && cached && Date.now() - cached.lastRefresh < FIVE_MINUTES) {
     return cached
@@ -230,7 +242,7 @@ export async function fetchCalendarEvents(forceRefresh = false): Promise<Calenda
     const config = await loadCalendarConfig()
     if (!config) throw new Error('calendar config missing or invalid')
     const events = await fetchTodayEvents(config)
-    const result: CalendarData = { events, lastRefresh: Date.now() }
+    const result: CalendarData = { events, lastRefresh: Date.now(), dateKey: localDateKey(new Date()) }
     safeSetStorage(CALENDAR_CACHE_KEY, JSON.stringify(result))
     return result
   } catch (e) {
