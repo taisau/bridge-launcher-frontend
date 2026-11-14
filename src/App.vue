@@ -292,10 +292,35 @@ const refreshApps = async () => {
   }
 }
 
+// --- Right swipe on the home screen -> Google News ---
+// A mostly horizontal, quick left-to-right swipe. It cannot start at the very
+// left edge (Android takes that for the back gesture) and never starts on the
+// letter strip, which stops its own touch events.
+const swipeAppPackage = 'com.google.android.apps.magazines'
+const swipeMinDx = 80
+const swipeMaxDy = 50
+const swipeMaxMs = 600
+let swipeStart: { x: number; y: number; t: number } | null = null
+
+const finishSwipe = (e: TouchEvent) => {
+  const start = swipeStart
+  swipeStart = null
+  const touch = e.changedTouches[0]
+  if (!start || !touch || pullDistance.value > 0) return
+  const dx = touch.clientX - start.x
+  const dy = Math.abs(touch.clientY - start.y)
+  if (dx < swipeMinDx || dy > swipeMaxDy || dy > dx / 2 || Date.now() - start.t > swipeMaxMs) return
+  triggerHaptic(20)
+  launchIntent(swipeAppPackage)
+}
+
 // --- Pull to Refresh Logic ---
 const handleMainTouchStart = (e: TouchEvent) => {
   const mainEl = e.currentTarget as HTMLElement
   const touch = e.touches[0]
+  swipeStart = flyout.value?.isOpen || e.touches.length > 1
+    ? null
+    : { x: touch.clientX, y: touch.clientY, t: Date.now() }
   // The flyout is rendered inside <main>; a touch on it must never start a
   // pull (the preventDefault would eat row taps and block list scrolling).
   if (flyout.value?.isOpen) {
@@ -326,7 +351,8 @@ const handleMainTouchMove = (e: TouchEvent) => {
   }
 }
 
-const handleMainTouchEnd = async () => {
+const handleMainTouchEnd = async (e: TouchEvent) => {
+  finishSwipe(e)
   if (!pullStartY.value) return
   
   if (pullDistance.value > refreshThreshold) {

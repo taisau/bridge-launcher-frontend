@@ -34,7 +34,7 @@ Sibling files (not loaded natively, read on demand): [[AGENTS.frontend]] (UI beh
 
 | Part | Version | Notes |
 |---|---|---|
-| Frontend | `v0.9.2` | built in the ai container, delivered by Syncthing; flyout rows are full-width and launch on `touchend` (`v0.9.2`, unverified on the phone); Syncthing readout on the date row: remaining size or folder state (size confirmed 2026-11-01; the state labels added in `v0.8.6` are unverified on the phone); all flyout haptics (activation, letter change, app rows) use the native tick (letter change confirmed 2026-11-01); `7 memo` tap records via `voicememo://record`, long-press opens Memos (unverified on the phone since `v0.7.0`) |
+| Frontend | `v0.9.3` | built in the ai container, delivered by Syncthing; flyout rows are full-width and launch on `touchend` (`v0.9.2`, unverified on the phone); right swipe on the home screen opens Google News (`v0.9.3`, unverified on the phone); Syncthing readout on the date row: remaining size or folder state (size confirmed 2026-11-01; the state labels added in `v0.8.6` are unverified on the phone); all flyout haptics (activation, letter change, app rows) use the native tick (letter change confirmed 2026-11-01); `7 memo` tap records via `voicememo://record`, long-press opens Memos (unverified on the phone since `v0.7.0`) |
 | APK | `v27` (`BridgeLauncher-v27.apk`, versionCode 27) | signer SHA-256 `37292fe9…`; installed and confirmed on the phone 2026-11-01 |
 | Native source | `launcher-src/` | gitignored here, persisted on GitHub branch `patched`, tag `v27` |
 
@@ -90,4 +90,4 @@ Sibling files (not loaded natively, read on demand): [[AGENTS.frontend]] (UI beh
 
 ## History
 
-Dated history in [[AGENTS.history]]. Latest: 2026-11-14 code review; flyout rows made easy to hit (`v0.9.2`).
+Dated history in [[AGENTS.history]]. Latest: 2026-11-14 code review, flyout rows made easy to hit (`v0.9.2`), right swipe opens Google News (`v0.9.3`).
