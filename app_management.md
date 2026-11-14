@@ -21,6 +21,7 @@ Edit this list to control which apps appear in the flyout.
 - [ ] Android Switch <!-- com.google.android.apps.restore -->
 - [ ] Android System Angle <!-- com.android.angle -->
 - [/] Authenticator <!-- com.azure.authenticator -->
+- [/] Authenticator <!-- com.bitwarden.authenticator -->, bitwarden authenticator
 - [/] Bambu Handy <!-- bbl.intl.bambulab.com -->
 - [/] BasicSync <!-- com.chiller3.basicsync -->
 - [/] Bitwarden <!-- com.x8bit.bitwarden -->
@@ -46,6 +47,7 @@ Edit this list to control which apps appear in the flyout.
 - [ ] Drive <!-- com.google.android.apps.docs -->
 - [/] FairScan <!-- org.fairscan.app -->
 - [ ] Files by Google <!-- com.google.android.apps.nbu.files -->
+- [ ] Files <!-- com.android.documentsui -->
 - [/] Find Hub <!-- com.google.android.apps.adm -->
 - [/] Firefox <!-- org.mozilla.firefox -->
 - [/] Gboard <!-- com.google.android.inputmethod.latin -->
@@ -80,6 +82,7 @@ Edit this list to control which apps appear in the flyout.
 - [/] Material Files <!-- me.zhanghai.android.files -->, files
 - [ ] Meet <!-- com.google.android.apps.tachyon -->
 - [/] Messages <!-- com.google.android.apps.messaging -->, google messages
+- [ ] Messaging <!-- com.android.messaging -->
 - [ ] My Pixel <!-- com.google.android.apps.tips -->
 - [/] Niagara Launcher <!-- bitpit.launcher -->
 - [/] Now Playing <!-- com.google.android.apps.pixel.nowplaying -->
@@ -135,7 +138,7 @@ Edit this list to control which apps appear in the flyout.
 - [/] WhatsApp <!-- com.whatsapp -->
 - [/] WiFiman <!-- com.ubnt.usurvey -->
 - [/] WireGuard <!-- com.wireguard.android -->
-- [/] YouTube <!-- app.morphe.android.youtube -->, youtube morphe
-- [/] YouTube Music <!-- app.morphe.android.apps.youtube.music -->, youtube music morphe
-- [ ] YouTube (Google) <!-- com.google.android.youtube -->
-- [ ] YouTube Music (Google) <!-- com.google.android.apps.youtube.music -->
+- [ ] YouTube <!-- app.morphe.android.youtube -->
+- [ ] YouTube Music <!-- app.morphe.android.apps.youtube.music -->
+- [/] YouTube (Google) <!-- com.google.android.youtube -->, youtube morphe
+- [/] YouTube Music (Google) <!-- com.google.android.apps.youtube.music -->, youtube music morphe

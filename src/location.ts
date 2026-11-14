@@ -22,7 +22,8 @@ interface HomeAssistantState {
 
 import { safeGetStorage, safeSetStorage } from './storage'
 
-let _haConfig: HomeAssistantConfig | null | undefined
+// Only a successfully parsed config is remembered; a failed fetch is retried.
+let _haConfig: HomeAssistantConfig | undefined
 
 function safeParseLocation(raw: string | null): LocationData | null {
   if (!raw) return null
@@ -37,19 +38,13 @@ function safeParseLocation(raw: string | null): LocationData | null {
 }
 
 async function loadHomeAssistantConfig(): Promise<HomeAssistantConfig | null> {
-  if (_haConfig !== undefined) return _haConfig
+  if (_haConfig) return _haConfig
 
   try {
     const res = await fetch(`./ha-config.json?t=${Date.now()}`)
-    if (!res.ok) {
-      _haConfig = null
-      return null
-    }
+    if (!res.ok) return null
     const config = await res.json()
-    if (typeof config.baseUrl !== 'string' || typeof config.entityId !== 'string') {
-      _haConfig = null
-      return null
-    }
+    if (typeof config.baseUrl !== 'string' || typeof config.entityId !== 'string') return null
     _haConfig = {
       baseUrl: config.baseUrl.replace(/\/$/, ''),
       token: typeof config.token === 'string' ? config.token : undefined,
@@ -58,7 +53,6 @@ async function loadHomeAssistantConfig(): Promise<HomeAssistantConfig | null> {
     return _haConfig
   } catch (e) {
     console.warn('home assistant config fetch error:', e)
-    _haConfig = null
     return null
   }
 }

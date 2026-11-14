@@ -17,3 +17,23 @@ export const triggerHaptic = (ms: number, minGap = 0) => {
     /* vibration unsupported or blocked */
   }
 }
+
+// Native system haptic (APK v27+): the same engine as keyboard typing, so it is
+// far softer than navigator.vibrate(), which has no amplitude control.
+// 27 = HapticFeedbackConstants.SEGMENT_FREQUENT_TICK, made for scrubbing.
+const SEGMENT_FREQUENT_TICK = 27
+export const triggerTick = (minGap = 0) => {
+  const t = Date.now()
+  if (minGap && t - lastHapticAt < minGap) return
+  lastHapticAt = t
+  const native = (window.Bridge as unknown as { performHaptic?: (c: number) => void } | undefined)?.performHaptic
+  if (typeof native === 'function') {
+    try {
+      native.call(window.Bridge, SEGMENT_FREQUENT_TICK)
+      return
+    } catch {
+      /* fall through to the web vibration */
+    }
+  }
+  triggerHaptic(5)
+}

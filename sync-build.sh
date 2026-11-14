@@ -48,11 +48,9 @@ echo "📂 Refreshing the sync folder..."
 STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
 cp -r "$PROJECT_DIR/$BUILD_DIR/." "$STAGE/"
-cp folders.json "$STAGE/"
-cp hidden_apps.json "$STAGE/" || true
-cp custom_labels.json "$STAGE/" || true
-cp ha-config.json "$STAGE/" || true
-cp calendar-config.json "$STAGE/" || true
+# All five are required: a missing one would be deleted from the phone by the
+# rsync below (set -e stops the build here instead).
+cp folders.json hidden_apps.json custom_labels.json ha-config.json calendar-config.json "$STAGE/"
 echo "$NEW_VERSION" > "$STAGE/.build-version"
 mkdir -p "$SYNC_DEST"
 rsync -a --delete "$STAGE/" "$SYNC_DEST/"

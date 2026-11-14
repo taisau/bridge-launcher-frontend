@@ -1,5 +1,6 @@
 {
   "com.alaskaairlines.android": "alaska",
+  "com.bitwarden.authenticator": "bitwarden authenticator",
   "com.concur.breeze": "concur",
   "com.deltek.dps.time": "vantagepoint",
   "com.brother.ptouch.designandprint2": "brother",
@@ -9,6 +10,6 @@
   "me.zhanghai.android.files": "files",
   "com.google.android.apps.messaging": "google messages",
   "com.reddit.frontpage": "reddit morphe",
-  "app.morphe.android.youtube": "youtube morphe",
-  "app.morphe.android.apps.youtube.music": "youtube music morphe"
+  "com.google.android.youtube": "youtube morphe",
+  "com.google.android.apps.youtube.music": "youtube music morphe"
 }

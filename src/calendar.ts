@@ -32,7 +32,9 @@ const CALENDAR_CACHE_KEY = 'calendar_events'
 const FIVE_MINUTES = 5 * 60 * 1000
 const MAX_EVENTS = 4
 
-let _calendarConfig: CalendarConfig | null | undefined
+// Only a successfully parsed config is remembered: a failed fetch (cold start,
+// bundle mid-sync) is retried on the next call instead of sticking for the session.
+let _calendarConfig: CalendarConfig | undefined
 
 // Date handling, verified against live Stalwart data (2026-09-10): BOTH
 // all-day AND timed events come back with `start` WITHOUT a Z suffix —
@@ -100,22 +102,18 @@ function safeParseCalendar(raw: string | null): CalendarData | null {
   return null
 }
 
-async function loadCalendarConfig(): Promise<CalendarConfig | null> {
-  if (_calendarConfig !== undefined) return _calendarConfig
+export async function loadCalendarConfig(): Promise<CalendarConfig | null> {
+  if (_calendarConfig) return _calendarConfig
 
   try {
     const res = await fetch(`./calendar-config.json?t=${Date.now()}`)
-    if (!res.ok) {
-      _calendarConfig = null
-      return null
-    }
+    if (!res.ok) return null
     const config = await res.json()
     if (
       typeof config.proxyUrl !== 'string' ||
       typeof config.user !== 'string' ||
       typeof config.sharedAccountName !== 'string'
     ) {
-      _calendarConfig = null
       return null
     }
     _calendarConfig = {
@@ -126,7 +124,6 @@ async function loadCalendarConfig(): Promise<CalendarConfig | null> {
     return _calendarConfig
   } catch (e) {
     console.warn('calendar config fetch error:', e)
-    _calendarConfig = null
     return null
   }
 }

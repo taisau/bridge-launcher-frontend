@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { BridgeApp } from './types'
-import { triggerHaptic } from './haptics'
+import { triggerTick } from './haptics'
 
 // The right-edge letter strip and its flyout list. Owns all wave state so a
 // finger moving along the strip re-renders only this subtree, not the whole
@@ -30,6 +30,15 @@ let waveAnimationFrame: number | null = null
 let pendingWaveTouch: Touch | null = null
 let initialTouch = { x: 0, y: 0 }
 let lastTouch: Touch | null = null
+
+// Row presses launch on touchend instead of waiting for the synthesized click:
+// Chromium drops the click once the finger drifts ~8 px, which a quick thumb
+// jab does. A press survives up to tapSlopPx of drift unless the list scrolled.
+const tapSlopPx = 24
+const listEl = ref<HTMLElement | null>(null)
+const pressedPkg = ref('')
+let press: { app: BridgeApp; x: number; y: number; scrollTop: number } | null = null
+let lastTouchLaunchAt = 0
 
 const activeIndex = computed(() => filteredAlphabet.value.indexOf(activeLetter.value))
 const isOpen = computed(() => isWaving.value || !!stickyLetter.value)
@@ -112,7 +121,7 @@ const processWaveTouch = (touch: Touch, silent = false) => {
 
   if (newLetter !== activeLetter.value) {
     activeLetter.value = newLetter
-    if (!silent) triggerHaptic(18)
+    if (!silent) triggerTick()
   }
 }
 
@@ -142,7 +151,7 @@ const handleWaveStart = (e: TouchEvent) => {
     // Process the latest touch synchronously and silently: a letter-change
     // buzz a frame later would cancel this 20 ms activation pulse.
     if (lastTouch) processWaveTouch(lastTouch, true)
-    triggerHaptic(20)
+    triggerTick()
   }, 100)
 }
 
@@ -178,6 +187,9 @@ const handleWaveEnd = () => {
     return
   }
   clearPendingWork()
+  // The frame queued for the last move was just dropped; read the final finger
+  // position now so a fast slide-and-release is not judged on a stale one.
+  if (isWaving.value && lastTouch) processWaveTouch(lastTouch, true)
 
   const distanceFromRight = window.innerWidth - touchX.value
 
@@ -202,7 +214,51 @@ const handleWaveCancel = () => {
   stickyLetter.value = ''
 }
 
+const listScrollTop = () => listEl.value?.scrollTop ?? 0
+
+const pressCancel = () => {
+  press = null
+  pressedPkg.value = ''
+}
+
+const pressStart = (app: BridgeApp, e: TouchEvent) => {
+  const touch = e.touches[0]
+  press = { app, x: touch.clientX, y: touch.clientY, scrollTop: listScrollTop() }
+  pressedPkg.value = app.packageName
+  triggerTick(300)
+}
+
+const pressMove = (e: TouchEvent) => {
+  if (!press) return
+  const touch = e.touches[0]
+  const drift = Math.hypot(touch.clientX - press.x, touch.clientY - press.y)
+  if (drift > tapSlopPx || Math.abs(listScrollTop() - press.scrollTop) > 4) pressCancel()
+}
+
+const pressEnd = (e: TouchEvent) => {
+  const pressed = press
+  pressCancel()
+  if (!pressed || Math.abs(listScrollTop() - pressed.scrollTop) > 4) return
+  // Suppress the click that would follow, so the app is not launched twice.
+  if (e.cancelable) e.preventDefault()
+  lastTouchLaunchAt = Date.now()
+  emit('launch', pressed.app)
+}
+
+// Mouse / desktop path; on the phone the touchend above has already launched.
+const rowClick = (app: BridgeApp) => {
+  if (Date.now() - lastTouchLaunchAt < 500) return
+  emit('launch', app)
+}
+
+// Long-press opens App info; the release that follows must not launch.
+const rowContext = (app: BridgeApp) => {
+  pressCancel()
+  emit('appInfo', app)
+}
+
 const close = () => {
+  pressCancel()
   stickyLetter.value = ''
   activeLetter.value = ''
 }
@@ -236,6 +292,7 @@ defineExpose({ close, isOpen })
     @touchmove.passive.stop="handleWaveMove"
     @touchend.passive.stop="handleWaveEnd"
     @touchcancel.passive.stop="handleWaveCancel"
+    @click.stop
   >
     <div
       v-for="(char, index) in filteredAlphabet"
@@ -247,27 +304,32 @@ defineExpose({ close, isOpen })
     </div>
   </div>
 
-  <!-- Active/Sticky Flyout List -->
+  <!-- Active/Sticky Flyout List. Spans from the left edge to the strip, and
+       rows touch each other, so every point of the list belongs to a row. -->
   <div
     v-if="isOpen && shownLetter && appsByLetter[shownLetter]"
     class="fixed z-50 flex flex-col no-scrollbar"
-    :style="{ top: `${flyoutTop}px`, left: '3.5rem', maxHeight: '80vh' }"
+    :style="{ top: `${flyoutTop}px`, left: '0', right: '8rem', maxHeight: '80vh' }"
   >
     <!-- Letter Header -->
-    <div class="mb-2 pb-1 shrink-0">
+    <div class="pl-14 pb-1 shrink-0">
       <span class="text-[17px] font-extrabold text-gray-500 tracking-widest lowercase">
         {{ shownLetter }}
       </span>
     </div>
 
-    <div class="flex flex-col gap-4 overflow-y-auto no-scrollbar pb-20">
+    <div ref="listEl" class="flex flex-col overflow-y-auto no-scrollbar pb-20">
       <div
         v-for="app in appsByLetter[shownLetter]"
         :key="app.packageName"
-        class="flex items-center py-2 cursor-pointer active:opacity-50 transition-all shrink-0"
-        @touchstart.passive="triggerHaptic(25, 300)"
-        @click.stop="emit('launch', app)"
-        @contextmenu.prevent.stop="emit('appInfo', app)"
+        class="flex items-center pl-14 py-4 cursor-pointer transition-opacity shrink-0"
+        :class="{ 'opacity-50': pressedPkg === app.packageName }"
+        @touchstart.passive="pressStart(app, $event)"
+        @touchmove.passive="pressMove"
+        @touchend="pressEnd"
+        @touchcancel.passive="pressCancel"
+        @click.stop="rowClick(app)"
+        @contextmenu.prevent.stop="rowContext(app)"
       >
         <span class="text-[15px] font-extrabold text-white tracking-tight leading-tight lowercase">
           {{ app.label }}

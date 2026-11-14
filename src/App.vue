@@ -6,6 +6,7 @@ import type { BridgeApp } from './types'
 import { calculateRemainingWorkingDays } from './countdown'
 import { fetchLocation } from './location'
 import { fetchWeather, fetchFixedWeather, type WeatherData } from './weather'
+import { fetchSyncStatus, type SyncStatus } from './syncthing'
 import { fetchCalendarEvents, loadCachedCalendar, type CalendarData, type CalendarDisplayEvent } from './calendar'
 
 declare const __APP_VERSION__: string;
@@ -24,6 +25,12 @@ const remainingDays = ref<number | null>(null)
 const weather = ref<WeatherData | null>(null)
 const fixedWeather = ref<WeatherData | null>(null)
 const calendarEvents = ref<CalendarData | null>(null)
+const syncStatus = ref<SyncStatus | null>(null)
+let syncTimer: ReturnType<typeof setInterval> | null = null
+const refreshSync = async () => {
+  if (document.visibilityState === 'hidden') return
+  syncStatus.value = await fetchSyncStatus()
+}
 const apkVersion = `apk v${window.Bridge?.getBridgeVersionCode?.() ?? '?'}`
 const version = `v${__APP_VERSION__} · ${apkVersion}`
 const now = ref(new Date())
@@ -180,7 +187,10 @@ const closeFlyout = () => {
 }
 
 // Special top-level apps
-const memoPackage = "org.fossify.voicerecorder.debug"
+// voicememo://record starts (or, if already recording, stops) a memo without showing UI.
+const memoUrl = "voicememo://record"
+// Long-press opens the Memos list; its first launcher activity is MainActivity.
+const memoPackage = "io.github.taisau.voicememo"
 
 const updateRemainingDays = (date: Date) => {
   const cutoffShift = date.getHours() >= 17 ? 1 : 0
@@ -202,8 +212,12 @@ const scheduleLoadData = (delay = 300) => {
 // force=true (pull-to-refresh only) bypasses every 5-min cache; mount,
 // resume and app-event callers keep the caches so background triggers
 // can't spam the APIs.
-const loadData = async (force = false) => {
-  if (loadDataInFlight) return loadDataInFlight
+const loadData = async (force = false): Promise<void> => {
+  void refreshSync()
+  if (loadDataInFlight) {
+    // A forced refresh must not be answered by a cached load already running.
+    return force ? loadDataInFlight.then(() => loadData(true)) : loadDataInFlight
+  }
   loadDataInFlight = (async () => {
     try {
       const appsUrl = window.Bridge.getAppsURL()
@@ -225,16 +239,14 @@ const loadData = async (force = false) => {
         folders.value = await foldersRes.value.json()
       }
 
+      // On a failed fetch keep the previous lists (like folders above), so
+      // hidden apps do not reappear while a bundle is still syncing.
       if (hiddenRes.status === 'fulfilled' && hiddenRes.value.ok) {
         hiddenApps.value = await hiddenRes.value.json()
-      } else {
-        hiddenApps.value = []
       }
 
       if (labelsRes.status === 'fulfilled' && labelsRes.value.ok) {
         customLabels.value = await labelsRes.value.json()
-      } else {
-        customLabels.value = {}
       }
 
       updateRemainingDays(now.value)
@@ -284,6 +296,12 @@ const refreshApps = async () => {
 const handleMainTouchStart = (e: TouchEvent) => {
   const mainEl = e.currentTarget as HTMLElement
   const touch = e.touches[0]
+  // The flyout is rendered inside <main>; a touch on it must never start a
+  // pull (the preventDefault would eat row taps and block list scrolling).
+  if (flyout.value?.isOpen) {
+    pullStartY.value = 0
+    return
+  }
   // Only allow pull-to-refresh if we are at the absolute top of the scroll container
   if (mainEl.scrollTop === 0) {
     pullStartY.value = touch.clientY
@@ -358,6 +376,7 @@ onMounted(() => {
     clockTimer = setTimeout(tickClock, 60000 - (Date.now() % 60000) + 50)
   }
   clockTimer = setTimeout(tickClock, 60000 - (Date.now() % 60000) + 50)
+  syncTimer = setInterval(refreshSync, 15000)
   window.onBridgeEvent = (event: any) => {
     if (event.name === 'beforePause') {
       lastPauseAt = Date.now()
@@ -378,6 +397,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (clockTimer) clearTimeout(clockTimer)
+  if (syncTimer) clearInterval(syncTimer)
   retryTimers.forEach(clearTimeout)
   if (loadDataDebounceTimer) clearTimeout(loadDataDebounceTimer)
   window.onBridgeEvent = undefined
@@ -606,8 +626,12 @@ const eventLine = (ev: CalendarDisplayEvent) => {
       <h1 class="text-3xl font-extrabold tracking-tighter lowercase">
         {{ now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) }}
       </h1>
-      <p class="text-[10px] lowercase tracking-wider text-gray-500 mt-1 pl-0.5">
-        {{ formatDate(now) }}
+      <p class="text-[10px] lowercase tracking-wider text-gray-500 mt-1 pl-0.5 flex justify-between items-baseline pr-2">
+        <span>{{ formatDate(now) }}</span>
+        <span v-if="syncStatus?.busy" :class="syncStatus.offline ? 'text-red-800' : ''">
+          {{ syncStatus.label }}
+          <span v-if="!syncStatus.offline" class="inline-block animate-spin">&#10227;</span>
+        </span>
       </p>
       <p v-if="shouldShowWeatherLine(weather)" class="text-[10px] lowercase tracking-wider text-gray-500 mt-0.5 pl-0.5">
         {{ weather!.city }} {{ weather!.tempHigh }}&deg; {{ weather!.condition }}
@@ -687,7 +711,8 @@ const eventLine = (ev: CalendarDisplayEvent) => {
       <!-- 7: The Memo App -->
       <div 
         class="flex items-center cursor-pointer active:opacity-50 transition-all"
-        @click.stop="launchApp({ packageName: memoPackage, label: '7 memo' })"
+        @click.stop="launchApp({ packageName: '', url: memoUrl, label: '7 memo' })"
+        @contextmenu.prevent.stop="launchApp({ packageName: memoPackage, label: 'memos' })"
       >
         <span class="text-[15px] font-extrabold tracking-tight text-gray-300 hover:text-white transition-colors lowercase">
           7 memo

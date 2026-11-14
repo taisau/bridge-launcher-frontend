@@ -5,13 +5,13 @@
   ],
   "2 media": [
     "de.ph1b.audiobook",
-    "app.morphe.android.youtube",
-    "app.morphe.android.apps.youtube.music",
+    "com.google.android.youtube",
+    "com.google.android.apps.youtube.music",
     "com.google.android.apps.wearables.maestro.companion"
   ],
   "3 comm": [
     "com.google.android.dialer",
-    "dev.octoshrimpy.quik|messages",
+    "com.google.android.apps.messaging|messages",
     "com.whatsapp",
     "pwa:email|https://ihasmail.taisau.tv/mail"
   ],
@@ -26,6 +26,6 @@
     "com.concur.breeze",
     "com.ukg.oneapp",
     "com.deltek.dps.time",
-    "de.schliweb.makeacopy.light|scanner (third trip)"
+    "de.schliweb.makeacopy.light|scanner (fourth trip)"
   ]
 }
